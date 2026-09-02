@@ -1,0 +1,198 @@
+@import "tailwindcss";
+
+/*
+  ══════════════════════════════════════════════════════════════
+  توکن‌های طراحی «گرگ» (GORG)
+
+  رنگ‌ها مستقیماً از تصویر برند خود رستوران (بافت قرمز با خط‌های
+  چنگال) نمونه‌برداری شده‌اند، نه رنگ‌های حدسی:
+  - ink   : نزدیک‌ترین رنگ به سایه‌های عمیق تصویر
+  - blood : میانگین قرمز اصلی بافت
+  - ember : درخشان‌ترین نقطه‌ی نور قرمز در تصویر (برای CTA/هاور)
+  ══════════════════════════════════════════════════════════════
+*/
+
+@theme {
+  --color-ink: #0d0403;
+  --color-charcoal: #1a0b09;
+  --color-charcoal-2: #241210;
+  --color-blood: #8c2a24;
+  --color-blood-dark: #5c1a17;
+  --color-ember: #dd4a34;
+  --color-ember-light: #f16a4f;
+  --color-bone: #f5ede7;
+  --color-ash: #a89490;
+
+  --font-sans: "Vazirmatn Variable", Tahoma, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: auto; /* اسکرول نرم توسط Lenis مدیریت می‌شود */
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-bone);
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-ink);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(221, 74, 52, 0.4);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(221, 74, 52, 0.65);
+}
+
+::selection {
+  background: rgba(221, 74, 52, 0.35);
+  color: #fff;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 2px;
+}
+
+/* ═══════════════ بافت پس‌زمینه‌ی برند (از عکس واقعی گرگ) ═══════════════ */
+.brand-texture {
+  background-image: linear-gradient(180deg, rgba(13, 4, 3, 0.55) 0%, rgba(13, 4, 3, 0.88) 70%, var(--color-ink) 100%),
+    url("/images/texture-red-clean.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+.brand-texture-soft {
+  background-image: linear-gradient(180deg, rgba(13, 4, 3, 0.82) 0%, rgba(13, 4, 3, 0.93) 100%),
+    url("/images/texture-red-clean.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+/* دانه‌ی فیلم ظریف روی کل سایت برای حس سینمایی/خام */
+.film-grain {
+  position: relative;
+}
+.film-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ═══════════════ نشان چنگال (عنصر امضادار برند) ═══════════════ */
+.claw-mark {
+  display: inline-block;
+  background-image: url("/images/gorg-mark.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.claw-divider {
+  width: 46px;
+  height: 28px;
+  background-image: url("/images/gorg-mark.png");
+  background-size: 220% 220%;
+  background-position: center;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 8px rgba(221, 74, 52, 0.25));
+}
+
+/* ═══════════════ دکمه‌ها ═══════════════ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--color-ember) 0%, var(--color-blood) 100%);
+  color: #fff;
+  font-weight: 700;
+  padding: 14px 30px;
+  border-radius: 999px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+  box-shadow: 0 10px 30px rgba(221, 74, 52, 0.25);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 14px 36px rgba(221, 74, 52, 0.4);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--color-bone);
+  font-weight: 700;
+  padding: 13px 28px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(245, 237, 231, 0.35);
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+.btn-outline:hover {
+  border-color: var(--color-ember);
+  background: rgba(221, 74, 52, 0.08);
+}
+
+/* ═══════════════ کارت‌ها ═══════════════ */
+.gorg-card {
+  background: linear-gradient(180deg, var(--color-charcoal) 0%, var(--color-charcoal-2) 100%);
+  border: 1px solid rgba(245, 237, 231, 0.06);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.gorg-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(221, 74, 52, 0.35);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(221, 74, 52, 0.08);
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(221, 74, 52, 0.12);
+  color: var(--color-ember-light);
+  border: 1px solid rgba(221, 74, 52, 0.25);
+}
+
+@keyframes emberPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(221, 74, 52, 0.45); }
+  50% { box-shadow: 0 0 0 10px rgba(221, 74, 52, 0); }
+}
+.ember-pulse {
+  animation: emberPulse 2.4s ease-out infinite;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fadeUp 0.7s ease both;
+}
