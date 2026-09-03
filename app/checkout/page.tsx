@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { isValidIranianPhone, generateOrderCode } from "@/lib/validation";
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "989120000000";
+const REMEMBER_KEY = "gorg-checkout-info-v1";
 
 function formatPrice(n: number) {
   return n.toLocaleString("fa-IR");
@@ -17,9 +19,27 @@ export default function CheckoutPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [orderType, setOrderType] = useState<"delivery" | "pickup">("delivery");
   const [form, setForm] = useState({ name: "", phone: "", address: "", notes: "" });
+  const [phoneError, setPhoneError] = useState("");
+  const [orderCode, setOrderCode] = useState("");
+
+  // پر کردن خودکار فرم از اطلاعات ذخیره‌شده‌ی سفارش قبلی (در همین مرورگر).
+  // این effect برای همگام‌سازی state با localStorage (یک سیستم خارجی) است،
+  // نه مشتق‌شده از state دیگر، پس اجرای setState یک‌بار در mount لازم است.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(REMEMBER_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setForm((f) => ({ ...f, name: parsed.name || "", phone: parsed.phone || "", address: parsed.address || "" }));
+      }
+    } catch {
+      // نادیده گرفته می‌شود
+    }
+  }, []);
 
   const whatsappText = encodeURIComponent(
-    `سلام گرگ، سفارش من:\n${lines.map((l) => `${l.qty}× ${l.name}`).join("\n")}\n\nجمع: ${formatPrice(
+    `سلام گرگ، سفارش من (کد ${orderCode}):\n${lines.map((l) => `${l.qty}× ${l.name}`).join("\n")}\n\nجمع: ${formatPrice(
       total
     )} تومان\nنام: ${form.name || "-"}\nتلفن: ${form.phone || "-"}\n${
       orderType === "delivery" ? "آدرس: " + (form.address || "-") : "تحویل حضوری"
@@ -29,16 +49,33 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (lines.length === 0) return;
+
+    if (!isValidIranianPhone(form.phone)) {
+      setPhoneError("شماره موبایل یا تلفن ثابت را درست وارد کنید (مثلاً 09123456789)");
+      return;
+    }
+    setPhoneError("");
+
+    const code = generateOrderCode();
     setStatus("sending");
     try {
       const res = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines, total, orderType, ...form }),
+        body: JSON.stringify({ lines, total, orderType, orderCode: code, ...form }),
       });
       if (!res.ok) throw new Error("failed");
+      setOrderCode(code);
       setStatus("success");
       clearCart();
+      try {
+        window.localStorage.setItem(
+          REMEMBER_KEY,
+          JSON.stringify({ name: form.name, phone: form.phone, address: form.address })
+        );
+      } catch {
+        // ذخیره‌سازی ممکن است در حالت خصوصی مرورگر ناموفق باشد؛ بی‌اهمیت است
+      }
     } catch {
       setStatus("error");
     }
@@ -65,11 +102,21 @@ export default function CheckoutPage() {
           ✓
         </div>
         <h1 className="text-2xl font-extrabold mb-3">سفارش شما ثبت شد</h1>
-        <p className="text-[var(--color-ash)] mb-8 leading-7">
+
+        <div className="inline-block gorg-card rounded-2xl px-6 py-4 mb-6">
+          <p className="text-xs text-[var(--color-ash)] mb-1">کد پیگیری سفارش</p>
+          <p className="text-2xl font-black tracking-wider" dir="ltr">{orderCode}</p>
+        </div>
+
+        <p className="text-[var(--color-ash)] mb-4 leading-7">
           گرگ سفارشتان را دریافت کرد و به‌زودی برای تأیید نهایی با شما تماس
-          می‌گیریم. برای اطمینان بیشتر می‌توانید همین سفارش را در واتساپ هم
-          برایمان بفرستید.
+          می‌گیریم. این کد را نگه دارید؛ برای پیگیری سفارش می‌توانید همین کد
+          را در واتساپ یا تلفن به ما بگویید.
         </p>
+        <p className="text-sm text-[var(--color-ember-light)] font-bold mb-8">
+          {orderType === "delivery" ? "زمان تقریبی ارسال: ۴۵ تا ۶۰ دقیقه" : "زمان تقریبی آماده‌سازی: ۲۵ تا ۳۵ دقیقه"}
+        </p>
+
         <div className="flex flex-wrap justify-center gap-4">
           <a
             href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappText}`}
@@ -160,11 +207,23 @@ export default function CheckoutPage() {
               id="phone"
               required
               inputMode="tel"
+              dir="ltr"
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="w-full bg-[var(--color-charcoal)] border border-white/12 rounded-xl px-4 py-3 text-sm focus:border-[var(--color-ember)] outline-none"
+              onChange={(e) => {
+                setForm({ ...form, phone: e.target.value });
+                if (phoneError) setPhoneError("");
+              }}
+              onBlur={() => {
+                if (form.phone && !isValidIranianPhone(form.phone)) {
+                  setPhoneError("شماره موبایل یا تلفن ثابت را درست وارد کنید (مثلاً 09123456789)");
+                }
+              }}
+              className={`w-full bg-[var(--color-charcoal)] border rounded-xl px-4 py-3 text-sm outline-none text-left ${
+                phoneError ? "border-red-500" : "border-white/12 focus:border-[var(--color-ember)]"
+              }`}
               placeholder="09123456789"
             />
+            {phoneError && <p className="text-xs text-red-400 mt-2">{phoneError}</p>}
           </div>
 
           {orderType === "delivery" && (

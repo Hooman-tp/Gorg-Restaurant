@@ -1,14 +1,14 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ScrollTrigger } from "@/lib/gsap";
 import { useGsap } from "@/hooks/useGsap";
 import { useCart } from "@/context/CartContext";
 import { ingredientLabels } from "@/lib/ingredientLabels";
 import IngredientLabelCard from "./IngredientLabelCard";
+import FrameSequencePlayer, { FrameSequenceHandle } from "./FrameSequencePlayer";
 
-// آستانه‌های محو‌شدن برچسب‌ها، دقیقاً منطبق با زمان‌بندی خود ویدیو:
+// آستانه‌های محو‌شدن برچسب‌ها، دقیقاً منطبق با زمان‌بندی خود فیلم:
 // همبرگر از حدود ثانیه‌ی ۲ شروع به سرهم‌شدن می‌کند و حدود ثانیه‌ی ۳.۳ کامل می‌شود.
 const LABEL_FADE_IN_END = 0.06;
 const LABEL_HOLD_END = 0.22;
@@ -24,37 +24,29 @@ function labelOpacityForProgress(p: number) {
 export default function FireStoryShowcase() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const playerRef = useRef<FrameSequenceHandle>(null);
   const labelRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [videoReady, setVideoReady] = useState(false);
   const [showCta, setShowCta] = useState(false);
   const { addItem } = useCart();
-
-  // مطمئن می‌شویم مرورگر واقعاً متادیتای ویدیو (طول/فریم اول) را بارگذاری کند
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.pause();
-    video.load();
-  }, []);
 
   useGsap(() => {
     if (!sectionRef.current || !pinnedRef.current) return;
 
+    // اگر به هر دلیلی (مثلاً اجرای دوباره‌ی افکت در حالت توسعه) تریگر قبلی
+    // هنوز زنده باشد، اول آن را از بین می‌بریم. وجود دو ScrollTrigger هم‌زمان
+    // روی یک بخش، دقیقاً همان چیزی‌ست که باعث لگ/توقف موقع اسکرول می‌شود.
+    const existing = ScrollTrigger.getById("fire-story");
+    existing?.kill();
+
     ScrollTrigger.create({
+      id: "fire-story",
       trigger: sectionRef.current,
       start: "top top",
       end: "bottom bottom",
       scrub: 0.3,
       pin: pinnedRef.current,
       onUpdate: (self) => {
-        const video = videoRef.current;
-        if (video && video.readyState >= 1 && video.duration && !Number.isNaN(video.duration)) {
-          const target = self.progress * video.duration;
-          if (Math.abs(video.currentTime - target) > 0.02) {
-            video.currentTime = target;
-          }
-        }
+        playerRef.current?.setProgress(self.progress);
 
         const opacity = labelOpacityForProgress(self.progress);
         labelRefs.current.forEach((el) => {
@@ -69,26 +61,7 @@ export default function FireStoryShowcase() {
   return (
     <section ref={sectionRef} className="relative" style={{ height: "240vh" }}>
       <div ref={pinnedRef} className="relative h-screen w-full overflow-hidden bg-[var(--color-ink)]">
-        {/* پوستر همیشه زیر ویدیوئه؛ تا وقتی فریم اول ویدیو آماده نشده دیده می‌شه */}
-        <Image
-          src="/video/gorg-burger-story-poster.jpg"
-          alt="همبرگر گرگ از هم باز شده روی آتش"
-          fill
-          sizes="100vw"
-          className="object-cover"
-          style={{ opacity: videoReady ? 0 : 1, transition: "opacity 0.4s" }}
-          priority
-        />
-        <video
-          ref={videoRef}
-          src="/video/gorg-burger-story.mp4"
-          muted
-          playsInline
-          preload="auto"
-          onLoadedData={() => setVideoReady(true)}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: videoReady ? 1 : 0, transition: "opacity 0.4s" }}
-        />
+        <FrameSequencePlayer ref={playerRef} />
 
         {/* برچسب‌های شیشه‌ای مواد تشکیل‌دهنده، دقیقاً روی محل هر ماده در فریم باز‌شده */}
         <div className="absolute inset-0">

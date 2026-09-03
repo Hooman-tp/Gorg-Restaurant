@@ -6,6 +6,7 @@ interface OrderBody {
   lines: CartLine[];
   total: number;
   orderType: "delivery" | "pickup";
+  orderCode: string;
   name: string;
   phone: string;
   address?: string;
@@ -42,10 +43,11 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: "سفارش‌های گرگ <orders@gorg-restaurant.ir>",
       to: recipient,
-      subject: `سفارش جدید از ${body.name}`,
+      subject: `سفارش جدید [${body.orderCode || "-"}] از ${body.name}`,
       html: `
         <div dir="rtl" style="font-family:Tahoma,sans-serif">
           <h2>سفارش جدید</h2>
+          <p><b>کد پیگیری:</b> ${body.orderCode || "-"}</p>
           <p><b>نام:</b> ${body.name}</p>
           <p><b>تلفن:</b> ${body.phone}</p>
           <p><b>نوع تحویل:</b> ${body.orderType === "delivery" ? "ارسال با پیک" : "تحویل حضوری"}</p>
