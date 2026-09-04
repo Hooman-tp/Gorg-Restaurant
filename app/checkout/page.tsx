@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { isValidIranianPhone, generateOrderCode } from "@/lib/validation";
+import { isValidIranianPhone } from "@/lib/validation";
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "989120000000";
 const REMEMBER_KEY = "gorg-checkout-info-v1";
@@ -56,16 +56,24 @@ export default function CheckoutPage() {
     }
     setPhoneError("");
 
-    const code = generateOrderCode();
     setStatus("sending");
     try {
-      const res = await fetch("/api/order", {
+      const res = await fetch("/api/checkout/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines, total, orderType, orderCode: code, ...form }),
+        body: JSON.stringify({ lines, total, orderType, ...form }),
       });
-      if (!res.ok) throw new Error("failed");
-      setOrderCode(code);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "failed");
+
+      // اگر درگاه پرداخت فعال باشد، کاربر به صفحه‌ی پرداخت زرین‌پال منتقل می‌شود
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
+
+      // در غیر این صورت (هنوز درگاه پرداخت وصل نشده)، سفارش مستقیم ثبت شده است
+      setOrderCode(data.orderCode);
       setStatus("success");
       clearCart();
       try {

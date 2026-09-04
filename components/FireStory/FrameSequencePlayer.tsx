@@ -19,6 +19,11 @@ export interface FrameSequenceHandle {
  * فیلمی تکرار می‌شد. اینجا همه‌ی فریم‌ها از قبل به‌صورت تصویر بارگذاری
  * می‌شوند و فقط یک drawImage روی canvas انجام می‌شود؛ این عملاً هزینه‌ی
  * محاسباتی‌اش صفر است و هیچ‌وقت لگ نمی‌زند، صرف‌نظر از سرعت اسکرول.
+ *
+ * چرا contain به‌جای cover؟ چون فیلم افقی (16:9) است و موبایل عمودی؛
+ * پر کردن کامل صفحه با cover روی موبایل یعنی چند برابر زوم و بریدن شدید
+ * تصویر. با contain، کل فریم همیشه دیده می‌شود و فضای خالی اطرافش با
+ * همون رنگ تیره‌ی پس‌زمینه‌ی فیلم پر می‌شود که عملاً نامرئی‌ست.
  */
 const FrameSequencePlayer = forwardRef<FrameSequenceHandle, { onFirstFrameReady?: () => void }>(
   function FrameSequencePlayer({ onFirstFrameReady }, ref) {
@@ -40,19 +45,21 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, { onFirstFrameReady?
       const cssH = canvas.clientHeight;
       const pxW = Math.round(cssW * dpr);
       const pxH = Math.round(cssH * dpr);
+      if (pxW === 0 || pxH === 0) return;
       if (canvas.width !== pxW || canvas.height !== pxH) {
         canvas.width = pxW;
         canvas.height = pxH;
       }
 
-      // پیاده‌سازی دستی معادل object-fit:cover برای canvas
-      const scale = Math.max(pxW / img.naturalWidth, pxH / img.naturalHeight);
+      // معادل object-fit:contain برای canvas (کل فریم همیشه کامل دیده می‌شود)
+      const scale = Math.min(pxW / img.naturalWidth, pxH / img.naturalHeight);
       const drawW = img.naturalWidth * scale;
       const drawH = img.naturalHeight * scale;
       const dx = (pxW - drawW) / 2;
       const dy = (pxH - drawH) / 2;
 
-      ctx.clearRect(0, 0, pxW, pxH);
+      ctx.fillStyle = "#0d0403"; // همون --color-ink، برای پر کردن حاشیه‌ی احتمالی
+      ctx.fillRect(0, 0, pxW, pxH);
       ctx.drawImage(img, dx, dy, drawW, drawH);
     };
 
@@ -82,12 +89,19 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, { onFirstFrameReady?
       }
       imagesRef.current = images;
 
-      const onResize = () => drawFrame(currentIndexRef.current);
-      window.addEventListener("resize", onResize);
+      const redraw = () => drawFrame(currentIndexRef.current);
+
+      // ResizeObserver قابل‌اعتمادتر از رویداد resize پنجره است، چون تغییر
+      // اندازه‌ی واقعی خودِ canvas را می‌بیند (مثلاً جمع/بازشدن نوار آدرس
+      // موبایل، چرخش صفحه، یا تغییرات ناشی از pin شدن با GSAP)
+      const ro = new ResizeObserver(redraw);
+      if (canvasRef.current) ro.observe(canvasRef.current);
+      window.addEventListener("orientationchange", redraw);
 
       return () => {
         cancelled = true;
-        window.removeEventListener("resize", onResize);
+        ro.disconnect();
+        window.removeEventListener("orientationchange", redraw);
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

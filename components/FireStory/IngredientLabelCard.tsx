@@ -18,33 +18,33 @@ const IngredientLabelCard = forwardRef<HTMLDivElement, { label: IngredientLabel 
         className="absolute flex items-center"
         style={{
           top: `${label.topPercent}%`,
-          [isRight ? "right" : "left"]: "3%",
+          [isRight ? "right" : "left"]: "2%",
           opacity: 0,
           transform: "translateY(-50%)",
           flexDirection: isRight ? "row-reverse" : "row",
         }}
       >
-        {/* کادر شیشه‌ای */}
+        {/* کادر شیشه‌ای، بزرگ‌تر و خواناتر */}
         <div
-          className="rounded-xl px-3 py-2 sm:px-4 sm:py-2.5 backdrop-blur-md bg-white/10 border border-white/25 shadow-lg"
+          className="rounded-2xl px-4 py-3 sm:px-6 sm:py-4 backdrop-blur-md bg-white/10 border border-white/25 shadow-lg"
           style={{ minWidth: "max-content" }}
           dir="rtl"
         >
-          <p className="text-white font-extrabold text-xs sm:text-sm leading-tight">{label.name}</p>
-          <p className="text-white/70 text-[10px] sm:text-xs mt-0.5 leading-tight">{label.detail}</p>
+          <p className="text-white font-extrabold text-sm sm:text-lg leading-tight">{label.name}</p>
+          <p className="text-white/70 text-xs sm:text-sm mt-1 leading-tight">{label.detail}</p>
         </div>
 
-        {/* خط نازک با یک نقطه‌ی کوچک روی ماده‌ی غذایی، به‌جای فلش شِوران قبلی */}
+        {/* خط بلندتر با یک نقطه‌ی کوچک روی ماده‌ی غذایی */}
         <svg
-          width="52"
-          height="14"
-          viewBox="0 0 52 14"
+          width="110"
+          height="16"
+          viewBox="0 0 110 16"
           className="shrink-0"
           style={{ transform: isRight ? "scaleX(-1)" : undefined }}
         >
-          <line x1="0" y1="7" x2="44" y2="7" stroke="rgba(255,255,255,0.8)" strokeWidth="1.25" />
-          <circle cx="47" cy="7" r="3" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.25" />
-          <circle cx="47" cy="7" r="1.1" fill="rgba(255,255,255,0.9)" />
+          <line x1="0" y1="8" x2="100" y2="8" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5" />
+          <circle cx="104" cy="8" r="3.5" fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth="1.5" />
+          <circle cx="104" cy="8" r="1.3" fill="rgba(255,255,255,0.95)" />
         </svg>
       </div>
     );

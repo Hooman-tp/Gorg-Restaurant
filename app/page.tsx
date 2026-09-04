@@ -4,6 +4,7 @@ import { categories, getSignatureItems } from "@/lib/menuData";
 import { dishImages } from "@/lib/images";
 import DishCard from "@/components/DishCard";
 import FireStoryShowcase from "@/components/FireStory/FireStoryShowcase";
+import InstallAppSection from "@/components/InstallAppSection";
 
 const CATEGORY_ICONS: Record<string, string> = {
   grill: "🔥",
@@ -180,6 +181,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ─────────────── نصب اپلیکیشن ─────────────── */}
+      <InstallAppSection />
     </>
   );
 }

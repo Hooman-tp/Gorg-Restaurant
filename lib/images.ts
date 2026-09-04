@@ -39,7 +39,7 @@ export const dishImages = {
   risottoPlate: unsplash("photo-1476124369491-e7addf5db371"),
   lasagnaSauce: unsplash("photo-1709429790175-b02bb1b19207"),
   caesarSalad: unsplash("photo-1556386734-4227a180d19e"),
-  soupBowls: unsplash("photo-1566236041308-e01bc4b727d2"),
+  soupBowls: unsplash("photo-1692776407523-8f3c4678ad36"),
 
   // ── نوشیدنی‌ها ──
   sodaGlasses: unsplash("photo-1609951651467-713256d1a3be"),
