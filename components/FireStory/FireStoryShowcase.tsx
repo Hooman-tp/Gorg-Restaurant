@@ -1,12 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollTrigger } from "@/lib/gsap";
 import { useGsap } from "@/hooks/useGsap";
 import { useCart } from "@/context/CartContext";
 import { ingredientLabels } from "@/lib/ingredientLabels";
 import IngredientLabelCard from "./IngredientLabelCard";
 import FrameSequencePlayer, { FrameSequenceHandle } from "./FrameSequencePlayer";
+
+const MOBILE_BREAKPOINT = 768;
+
+const DESKTOP_FRAMES = { count: 100, prefix: "/video/frames/frame_", reach: 36 };
+const MOBILE_FRAMES = { count: 100, prefix: "/video/frames-mobile/frame_", reach: 27 };
 
 // آستانه‌های محو‌شدن برچسب‌ها، دقیقاً منطبق با زمان‌بندی خود فیلم:
 // همبرگر از حدود ثانیه‌ی ۲ شروع به سرهم‌شدن می‌کند و حدود ثانیه‌ی ۳.۳ کامل می‌شود.
@@ -27,14 +32,20 @@ export default function FireStoryShowcase() {
   const playerRef = useRef<FrameSequenceHandle>(null);
   const labelRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [showCta, setShowCta] = useState(false);
+  const [device, setDevice] = useState<"desktop" | "mobile" | null>(null);
   const { addItem } = useCart();
+
+  // تشخیص دستگاه فقط سمت کلاینت انجام می‌شود (window در SSR وجود ندارد).
+  // این همگام‌سازی با محیط مرورگر است، نه state مشتق‌شده، پس اجرای
+  // setState یک‌باره در mount ضروری است.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDevice(window.innerWidth < MOBILE_BREAKPOINT ? "mobile" : "desktop");
+  }, []);
 
   useGsap(() => {
     if (!sectionRef.current || !pinnedRef.current) return;
 
-    // اگر به هر دلیلی (مثلاً اجرای دوباره‌ی افکت در حالت توسعه) تریگر قبلی
-    // هنوز زنده باشد، اول آن را از بین می‌بریم. وجود دو ScrollTrigger هم‌زمان
-    // روی یک بخش، دقیقاً همان چیزی‌ست که باعث لگ/توقف موقع اسکرول می‌شود.
     const existing = ScrollTrigger.getById("fire-story");
     existing?.kill();
 
@@ -58,17 +69,34 @@ export default function FireStoryShowcase() {
     });
   }, []);
 
+  const frameSet = device === "mobile" ? MOBILE_FRAMES : DESKTOP_FRAMES;
+
   return (
     <section ref={sectionRef} className="relative" style={{ height: "240vh" }}>
       <div ref={pinnedRef} className="relative h-screen w-full overflow-hidden bg-[var(--color-ink)]">
-        <FrameSequencePlayer ref={playerRef} />
+        {device && (
+          <FrameSequencePlayer ref={playerRef} frameCount={frameSet.count} framePrefix={frameSet.prefix} />
+        )}
 
         {/* برچسب‌های شیشه‌ای مواد تشکیل‌دهنده، دقیقاً روی محل هر ماده در فریم باز‌شده */}
-        <div className="absolute inset-0">
-          {ingredientLabels.map((label, i) => (
-            <IngredientLabelCard key={label.id} label={label} ref={(el) => { labelRefs.current[i] = el; }} />
-          ))}
-        </div>
+        {device && (
+          <div className="absolute inset-0">
+            {ingredientLabels.map((label, i) => (
+              <IngredientLabelCard
+                key={label.id}
+                ref={(el) => { labelRefs.current[i] = el; }}
+                reachPercent={frameSet.reach}
+                label={{
+                  id: label.id,
+                  name: label.name,
+                  detail: label.detail,
+                  side: label.side,
+                  topPercent: device === "mobile" ? label.topPercentMobile : label.topPercentDesktop,
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[var(--color-ink)] via-[var(--color-ink)]/40 to-transparent pointer-events-none" />
 

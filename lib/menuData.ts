@@ -1,5 +1,5 @@
 import { MenuItem, MenuCategoryId } from "./types";
-import { dishImages } from "./images";
+import { dishImages, brand } from "./images";
 
 export const categories: { id: MenuCategoryId; label: string; blurb: string }[] = [
   { id: "grill", label: "گریل و کباب", blurb: "روی آتیش زغال، همون‌طوری که غریزه دوست داره" },
@@ -115,6 +115,16 @@ export const menuItems: MenuItem[] = [
     description: "با پیاز کاراملی و سس مستارد تند",
     price: 195000,
     image: dishImages.hotdogCheese,
+  },
+  {
+    id: "ff-7",
+    category: "fastfood",
+    name: "سینی مشترک گرگ",
+    description: "ترکیبی از برگرهای امضادار گرگ، فینگرفود مرغ با سس مخصوص و سیب‌زمینی؛ برای جمع‌های دونفره به بالا",
+    price: 890000,
+    image: brand.platter,
+    signature: true,
+    tags: ["مخصوص جمع"],
   },
 
   // ── ایرانی ─────────────────────────────

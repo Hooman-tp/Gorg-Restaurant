@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/menu", label: "منو" },
   { href: "/gallery", label: "گالری" },
   { href: "/about", label: "درباره گرگ" },
+  { href: "/track", label: "پیگیری سفارش" },
   { href: "/contact", label: "تماس" },
 ];
 

@@ -68,7 +68,7 @@ export default function InstallAppSection() {
         اصلی گوشیتون نصب کنید؛ سریع‌تر باز می‌شه و آیکون اختصاصی داره.
       </p>
       <button onClick={handleClick} className="btn-primary">
-        نصب اپلیکیشن گرگ
+        نسخه تحت وب گرگ
       </button>
 
       {showIosHelp && (

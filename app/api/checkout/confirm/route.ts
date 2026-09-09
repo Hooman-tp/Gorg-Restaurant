@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyZarinpalPayment } from "@/lib/zarinpal";
 import { decodeOrder } from "@/lib/orderEncoding";
 import { processOrderNotifications } from "@/lib/orderNotify";
+import { saveOrder } from "@/lib/orders";
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,7 +22,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: verification.errorMessage || "پرداخت تأیید نشد" });
     }
 
-    await processOrderNotifications({ ...order, refId: verification.refId });
+    await Promise.all([
+      processOrderNotifications({ ...order, refId: verification.refId }),
+      saveOrder({ ...order, refId: verification.refId }),
+    ]);
 
     return NextResponse.json({ success: true, orderCode: order.orderCode, refId: verification.refId });
   } catch (err) {

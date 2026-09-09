@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { dishImages } from "@/lib/images";
+import { dishImages, brand } from "@/lib/images";
 import GalleryGrid from "@/components/GalleryGrid";
 
 export const metadata: Metadata = {
@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 
 const photos = [
   { src: dishImages.interior1, alt: "فضای داخلی رستوران گرگ" },
+  { src: brand.platter, alt: "سینی مشترک گرگ" },
   { src: dishImages.grillSteakWine, alt: "استیک آنگوس گریل‌شده" },
   { src: dishImages.persianRiceOlives, alt: "باقالی‌پلو با ماهیچه" },
   { src: dishImages.pizzaPepperoni, alt: "پیتزای آتیشی" },

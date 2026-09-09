@@ -114,12 +114,18 @@ export default function CheckoutPage() {
         <div className="inline-block gorg-card rounded-2xl px-6 py-4 mb-6">
           <p className="text-xs text-[var(--color-ash)] mb-1">کد پیگیری سفارش</p>
           <p className="text-2xl font-black tracking-wider" dir="ltr">{orderCode}</p>
+          <button
+            onClick={() => navigator.clipboard?.writeText(orderCode)}
+            className="text-xs text-[var(--color-ember-light)] mt-2 hover:underline"
+          >
+            کپی کردن کد
+          </button>
         </div>
 
         <p className="text-[var(--color-ash)] mb-4 leading-7">
           گرگ سفارشتان را دریافت کرد و به‌زودی برای تأیید نهایی با شما تماس
-          می‌گیریم. این کد را نگه دارید؛ برای پیگیری سفارش می‌توانید همین کد
-          را در واتساپ یا تلفن به ما بگویید.
+          می‌گیریم. این کد را نگه دارید؛ هر وقت خواستید از صفحه‌ی «پیگیری
+          سفارش» با همین کد و شماره تماستان وضعیت سفارش را ببینید.
         </p>
         <p className="text-sm text-[var(--color-ember-light)] font-bold mb-8">
           {orderType === "delivery" ? "زمان تقریبی ارسال: ۴۵ تا ۶۰ دقیقه" : "زمان تقریبی آماده‌سازی: ۲۵ تا ۳۵ دقیقه"}
@@ -134,8 +140,8 @@ export default function CheckoutPage() {
           >
             ارسال در واتساپ
           </a>
-          <Link href="/menu" className="btn-outline">
-            بازگشت به منو
+          <Link href="/track" className="btn-outline">
+            پیگیری سفارش
           </Link>
         </div>
       </div>

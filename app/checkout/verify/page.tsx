@@ -112,16 +112,28 @@ function VerifyContent() {
             شماره پیگیری بانکی: <span dir="ltr">{refId}</span>
           </p>
         )}
+        <button
+          onClick={() => navigator.clipboard?.writeText(orderCode)}
+          className="text-xs text-[var(--color-ember-light)] mt-2 hover:underline block mx-auto"
+        >
+          کپی کردن کد
+        </button>
       </div>
 
       <p className="text-[var(--color-ash)] mb-8 leading-7">
-        گرگ سفارشتان را دریافت کرد. این کد را نگه دارید؛ برای پیگیری می‌توانید
-        همین کد را در واتساپ یا تلفن به ما بگویید.
+        گرگ سفارشتان را دریافت کرد. این کد را نگه دارید؛ هر وقت خواستید از
+        صفحه‌ی «پیگیری سفارش» با همین کد و شماره تماستان وضعیت سفارش را
+        ببینید.
       </p>
 
-      <Link href="/menu" className="btn-outline">
-        بازگشت به منو
-      </Link>
+      <div className="flex flex-wrap justify-center gap-4">
+        <Link href="/track" className="btn-primary">
+          پیگیری سفارش
+        </Link>
+        <Link href="/menu" className="btn-outline">
+          بازگشت به منو
+        </Link>
+      </div>
     </div>
   );
 }

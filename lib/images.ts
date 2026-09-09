@@ -59,4 +59,5 @@ export const brand = {
   texture: "/images/texture-red-clean.jpg",
   posterFull: "/images/gorg-poster-full.jpg",
   location: "/images/gorg-location.jpg",
+  platter: "/images/gorg-platter.jpg",
 };

@@ -24,7 +24,7 @@ const GALLERY_TEASER = [
 ];
 
 export default function HomePage() {
-  const signatureDishes = getSignatureItems().slice(0, 6);
+  const signatureDishes = getSignatureItems().slice(0, 7);
 
   return (
     <>

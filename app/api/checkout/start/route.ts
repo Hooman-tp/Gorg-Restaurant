@@ -3,6 +3,7 @@ import { isValidIranianPhone, generateOrderCode } from "@/lib/validation";
 import { isZarinpalConfigured, createZarinpalPayment } from "@/lib/zarinpal";
 import { encodeOrder } from "@/lib/orderEncoding";
 import { processOrderNotifications } from "@/lib/orderNotify";
+import { saveOrder } from "@/lib/orders";
 import { CartLine } from "@/lib/types";
 
 interface StartBody {
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── مسیر ۲: هنوز درگاه پرداخت وصل نشده؛ سفارش مستقیم ثبت می‌شود ──
-    await processOrderNotifications(order);
+    await Promise.all([processOrderNotifications(order), saveOrder(order)]);
     return NextResponse.json({ redirectUrl: null, orderCode });
   } catch (err) {
     console.error("checkout start error", err);
