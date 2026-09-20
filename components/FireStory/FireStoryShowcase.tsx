@@ -5,6 +5,7 @@ import { ScrollTrigger } from "@/lib/gsap";
 import { useGsap } from "@/hooks/useGsap";
 import { useCart } from "@/context/CartContext";
 import { ingredientLabels } from "@/lib/ingredientLabels";
+import { getItemById } from "@/lib/menuData";
 import IngredientLabelCard from "./IngredientLabelCard";
 import FrameSequencePlayer, { FrameSequenceHandle } from "./FrameSequencePlayer";
 
@@ -13,8 +14,12 @@ const MOBILE_BREAKPOINT = 768;
 const DESKTOP_FRAMES = { count: 100, prefix: "/video/frames/frame_", reach: 36 };
 const MOBILE_FRAMES = { count: 100, prefix: "/video/frames-mobile/frame_", reach: 27 };
 
-// آستانه‌های محو‌شدن برچسب‌ها، دقیقاً منطبق با زمان‌بندی خود فیلم:
-// همبرگر از حدود ثانیه‌ی ۲ شروع به سرهم‌شدن می‌کند و حدود ثانیه‌ی ۳.۳ کامل می‌شود.
+// برچسب‌های شیشه‌ای مواد تشکیل‌دهنده برای «فیلم قدیمی» کالیبره شده بودند
+// (همان فریمِ باز/اکسپلود‌شده‌ی همبرگر که هر ماده در ارتفاع مشخصی می‌ایستاد).
+// فیلم جدید چنین نمای بازشده‌ای ندارد، پس فعلاً این لایه رندر نمی‌شود
+// (پایین‌تر، رندر IngredientLabelCard غیرفعال شده) تا برچسب‌ها روی جای
+// اشتباهی از تصویر ننشینند. توابع/ثابت‌های زیر برای برگرداندنِ راحت‌تر
+// این قابلیت نگه داشته شده‌اند.
 const LABEL_FADE_IN_END = 0.06;
 const LABEL_HOLD_END = 0.22;
 const LABEL_FADE_OUT_END = 0.4;
@@ -34,6 +39,8 @@ export default function FireStoryShowcase() {
   const [showCta, setShowCta] = useState(false);
   const [device, setDevice] = useState<"desktop" | "mobile" | null>(null);
   const { addItem } = useCart();
+  // آیتم منو که دکمه‌ی زیر انیمیشن به سبد اضافه می‌کند
+  const heroItem = getItemById("bg-1");
 
   // تشخیص دستگاه فقط سمت کلاینت انجام می‌شود (window در SSR وجود ندارد).
   // این همگام‌سازی با محیط مرورگر است، نه state مشتق‌شده، پس اجرای
@@ -54,7 +61,7 @@ export default function FireStoryShowcase() {
       trigger: sectionRef.current,
       start: "top top",
       end: "bottom bottom",
-      scrub: 0.3,
+      scrub: 1.6,
       pin: pinnedRef.current,
       onUpdate: (self) => {
         playerRef.current?.setProgress(self.progress);
@@ -72,14 +79,25 @@ export default function FireStoryShowcase() {
   const frameSet = device === "mobile" ? MOBILE_FRAMES : DESKTOP_FRAMES;
 
   return (
-    <section ref={sectionRef} className="relative" style={{ height: "240vh" }}>
+    <section ref={sectionRef} className="relative" style={{ height: "520vh" }}>
       <div ref={pinnedRef} className="relative h-screen w-full overflow-hidden bg-[var(--color-ink)]">
+        {/*
+          فیلم فعلی افقی (۱۶:۹) است، هم برای هیرو دسکتاپ مناسب است هم با
+          برش مرکزی روی صفحه‌ی عمودی موبایل تمیز جا می‌شود؛ پس هر دو از
+          fit="cover" (پیش‌فرض) استفاده می‌کنند و برشی گم نمی‌شود.
+        */}
         {device && (
           <FrameSequencePlayer ref={playerRef} frameCount={frameSet.count} framePrefix={frameSet.prefix} />
         )}
 
-        {/* برچسب‌های شیشه‌ای مواد تشکیل‌دهنده، دقیقاً روی محل هر ماده در فریم باز‌شده */}
-        {device && (
+        {/*
+          برچسب‌های شیشه‌ای مواد تشکیل‌دهنده فعلاً غیرفعال است: این برچسب‌ها
+          روی فریمِ «باز/اکسپلودشده»‌ی فیلم قبلی کالیبره شده بودند و فیلم
+          جدید چنین نمایی ندارد. اگر فیلمی با نمای مشابه (لایه‌های همبرگر
+          جدا از هم) در اختیار بود، می‌شود موقعیت‌های ingredientLabels.ts
+          را دوباره کالیبره کرد و بلوک زیر را باز کرد.
+        */}
+        {false && device && (
           <div className="absolute inset-0">
             {ingredientLabels.map((label, i) => (
               <IngredientLabelCard
@@ -98,6 +116,8 @@ export default function FireStoryShowcase() {
           </div>
         )}
 
+        {/* محو شدن لبه‌ی بالا (همان حالت لبه‌ی پایین) تا خط سخت بین هیرو و فیلم دیده نشود */}
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[var(--color-ink)] via-[var(--color-ink)]/40 to-transparent pointer-events-none" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[var(--color-ink)] via-[var(--color-ink)]/40 to-transparent pointer-events-none" />
 
         <div className="pointer-events-none absolute top-16 sm:top-20 inset-x-0 text-center px-5">
@@ -108,12 +128,14 @@ export default function FireStoryShowcase() {
           className="absolute bottom-6 inset-x-0 flex justify-center transition-opacity duration-500"
           style={{ opacity: showCta ? 1 : 0, pointerEvents: showCta ? "auto" : "none" }}
         >
-          <button
-            onClick={() => addItem({ id: "ff-1", name: "برگر گرگ", price: 265000 })}
-            className="btn-primary"
-          >
-            افزودن برگر گرگ به سبد
-          </button>
+          {heroItem && (
+            <button
+              onClick={() => addItem({ id: heroItem.id, name: heroItem.name, price: heroItem.price })}
+              className="btn-primary"
+            >
+              افزودن {heroItem.name} به سبد
+            </button>
+          )}
         </div>
       </div>
     </section>

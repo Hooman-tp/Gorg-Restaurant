@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import ContactForm from "@/components/ContactForm";
+import InstagramIcon from "@/components/InstagramIcon";
+import { ADDRESS, INSTAGRAM_ID, INSTAGRAM_URL, PHONE_DISPLAY, PHONE_FA, PHONE_TEL } from "@/lib/contact";
 
-const PHONE = process.env.NEXT_PUBLIC_PHONE_DISPLAY || "021-22240039";
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "989120000000";
-const ADDRESS = "بلوار اندرزگو، اشکستان‌پور جنوبی، پلاک ۳";
 // عبارت جستجو مخصوص نقشه: فرمت «تقاطع خیابان و خیابان» برای گوگل‌مپ خیلی
 // دقیق‌تر از آدرس کامل با پلاک حل می‌شود (پلاک برای گوگل‌مپ در خیابان‌های
 // فرعی معمولاً قابل تشخیص نیست و باعث نتیجه‌ی نادقیق می‌شود).
@@ -37,8 +37,21 @@ export default function ContactPage() {
               </li>
               <li className="flex items-start gap-3">
                 <span aria-hidden="true">📞</span>
-                <a href={`tel:${PHONE.replace(/-/g, "")}`} className="hover:text-[var(--color-ember-light)]">
-                  <span dir="ltr" className="inline-block">{PHONE}</span>
+                <a href={PHONE_TEL} className="hover:text-[var(--color-ember-light)]">
+                  <span dir="ltr" className="inline-block">{PHONE_DISPLAY}</span>
+                </a>
+              </li>
+              <li className="flex items-start gap-3">
+                <span aria-hidden="true" className="text-[var(--color-ash)] mt-[1px]">
+                  <InstagramIcon size={18} />
+                </span>
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[var(--color-ember-light)]"
+                >
+                  <span dir="ltr" className="inline-block">@{INSTAGRAM_ID}</span>
                 </a>
               </li>
               <li className="flex items-start gap-3">
@@ -72,14 +85,14 @@ export default function ContactPage() {
           <div className="relative aspect-[1179/2059] w-full">
             <Image
               src="/images/gorg-phone.jpg"
-              alt="تماس با گرگ - شماره ۰۲۱-۲۲۲۴۰۰۳۹"
+              alt={`تماس با گرگ - شماره ${PHONE_FA}`}
               fill
               sizes="(max-width: 640px) 100vw, 33vw"
               className="object-cover"
             />
           </div>
           <div className="p-4">
-            <a href={`tel:${PHONE.replace(/-/g, "")}`} className="btn-primary w-full text-sm">
+            <a href={PHONE_TEL} className="btn-primary w-full text-sm">
               تماس بگیرید
             </a>
           </div>

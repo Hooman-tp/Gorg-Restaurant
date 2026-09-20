@@ -1,10 +1,16 @@
-export type MenuCategoryId = "grill" | "fastfood" | "iranian" | "italian" | "drinks";
+export type MenuCategoryId =
+  | "starters"
+  | "salad"
+  | "burger"
+  | "brisket"
+  | "nashville"
+  | "drinks";
 
 export interface MenuItem {
   id: string;
   category: MenuCategoryId;
   name: string;
-  description: string;
+  description?: string;
   price: number; // به تومان
   image?: string;
   tags?: string[];

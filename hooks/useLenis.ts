@@ -11,11 +11,13 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
  */
 export function useLenis() {
   useEffect(() => {
+    // سرعت اسکرول: عدد wheelMultiplier را کمتر کنید تا اسکرول کندتر شود،
+    // و lerp را کمتر کنید تا حرکت نرم‌تر و «سنگین‌تر» شود.
     const lenis = new Lenis({
       smoothWheel: true,
-      duration: 1.15,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
+      lerp: 0.075,
+      wheelMultiplier: 0.6,
+      touchMultiplier: 1,
       gestureOrientation: "vertical",
     });
 

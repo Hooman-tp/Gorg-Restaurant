@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "گرگ | GORG",
     short_name: "گرگ",
-    description: "رستوران گرگ — گریل، فست‌فود، ایرانی و ایتالیایی. سفارش آنلاین.",
+    description: "رستوران گرگ — برگر، بریسکت، نشویل و بال. سفارش آنلاین.",
     start_url: "/",
     display: "standalone",
     background_color: "#0d0403",

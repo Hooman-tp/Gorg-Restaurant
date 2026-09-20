@@ -5,7 +5,7 @@ import MenuCategoryNav from "@/components/MenuCategoryNav";
 
 export const metadata: Metadata = {
   title: "منو",
-  description: "منوی کامل رستوران گرگ: گریل و کباب، فست‌فود، ایرانی، ایتالیایی و نوشیدنی.",
+  description: "منوی کامل رستوران گرگ: پیش‌غذا، سالاد، برگر، بریسکت، نشویل و نوشیدنی.",
 };
 
 export default function MenuPage() {
@@ -15,7 +15,7 @@ export default function MenuPage() {
         <span className="text-xs tracking-[0.3em] text-[var(--color-ember-light)] uppercase">Menu</span>
         <h1 className="text-4xl font-black mt-3 mb-3">منوی گرگ</h1>
         <p className="text-[var(--color-ash)] max-w-xl">
-          از روی زغال تا آشپزخانه‌ی ایتالیایی. دسته‌ی مورد نظرتان را انتخاب
+          از بال و برگر تا بریسکت و نشویل. دسته‌ی مورد نظرتان را انتخاب
           کنید و مستقیم به سبد سفارش اضافه کنید.
         </p>
       </div>

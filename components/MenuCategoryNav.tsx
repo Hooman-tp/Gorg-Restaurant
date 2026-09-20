@@ -10,7 +10,7 @@ import { MenuCategoryId } from "@/lib/types";
  * فعال را هایلایت می‌کند.
  */
 export default function MenuCategoryNav() {
-  const [active, setActive] = useState<MenuCategoryId>("grill");
+  const [active, setActive] = useState<MenuCategoryId>("starters");
 
   useEffect(() => {
     const sections = categories

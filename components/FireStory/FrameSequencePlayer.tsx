@@ -11,19 +11,23 @@ interface Props {
   frameCount: number;
   framePrefix: string; // مثلاً "/video/frames/frame_" یا "/video/frames-mobile/frame_"
   onFirstFrameReady?: () => void;
+  /**
+   * "cover": فریم را با برش، به‌اندازه‌ی کل کانواس می‌کِشد (زمانی خوب که
+   * نسبت‌ابعاد فریم با نسبت‌ابعاد کانواس نزدیک باشد، مثل موبایل).
+   * "contain-blur": کل فریم را بدون هیچ برشی، وسط کانواس جا می‌دهد و
+   * پشتش را با نسخه‌ی بزرگ‌شده و بلورِ همان فریم پر می‌کند؛ برای دسکتاپ
+   * که فریمِ عمودیِ فیلم با کادر افقیِ هیرو هم‌نسبت نیست، تا چیزی از
+   * تصویر اصلی حذف نشود.
+   */
+  fit?: "cover" | "contain-blur";
 }
 
 /**
  * پخش‌کننده‌ی «دنباله‌ی فریم» روی canvas (به‌جای <video currentTime=...>
  * که با اسکرول سریع، از موتور دیکود مرورگر عبور می‌کند و لگ می‌زند).
- *
- * چرا فقط cover و نه contain/بلور؟ چون حالا برای دسکتاپ و موبایل دو منبع
- * جدا با نسبت‌ابعاد متناسب همان دستگاه داریم (افقی برای دسکتاپ، عمودی
- * برای موبایل)، پس cover دیگر نیازی به برش تهاجمی ندارد و کل صفحه را
- * تمیز پر می‌کند، بدون حاشیه یا لایه‌ی بلورِ اضافه.
  */
 const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function FrameSequencePlayer(
-  { frameCount, framePrefix, onFirstFrameReady },
+  { frameCount, framePrefix, onFirstFrameReady, fit = "cover" },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -50,13 +54,32 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
       canvas.height = pxH;
     }
 
+    ctx.clearRect(0, 0, pxW, pxH);
+
+    if (fit === "contain-blur") {
+      // لایه‌ی پس‌زمینه: نسخه‌ی بزرگ‌شده و بلورِ فریم، تمام کانواس را پر می‌کند
+      const coverScale = Math.max(pxW / img.naturalWidth, pxH / img.naturalHeight);
+      const coverW = img.naturalWidth * coverScale;
+      const coverH = img.naturalHeight * coverScale;
+      ctx.save();
+      ctx.filter = "blur(60px) brightness(0.5)";
+      ctx.drawImage(img, (pxW - coverW) / 2, (pxH - coverH) / 2, coverW, coverH);
+      ctx.restore();
+
+      // لایه‌ی اصلی: کل فریم بدون برش، وسط‌چین
+      const containScale = Math.min(pxW / img.naturalWidth, pxH / img.naturalHeight);
+      const drawW = img.naturalWidth * containScale;
+      const drawH = img.naturalHeight * containScale;
+      ctx.drawImage(img, (pxW - drawW) / 2, (pxH - drawH) / 2, drawW, drawH);
+      return;
+    }
+
     const scale = Math.max(pxW / img.naturalWidth, pxH / img.naturalHeight);
     const drawW = img.naturalWidth * scale;
     const drawH = img.naturalHeight * scale;
     const dx = (pxW - drawW) / 2;
     const dy = (pxH - drawH) / 2;
 
-    ctx.clearRect(0, 0, pxW, pxH);
     ctx.drawImage(img, dx, dy, drawW, drawH);
   };
 

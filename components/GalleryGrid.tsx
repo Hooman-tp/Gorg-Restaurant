@@ -6,6 +6,8 @@ import Image from "next/image";
 interface GalleryPhoto {
   src: string;
   alt: string;
+  width?: number;
+  height?: number;
 }
 
 export default function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
@@ -44,8 +46,8 @@ export default function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
             <Image
               src={photo.src}
               alt={photo.alt}
-              width={500}
-              height={i % 3 === 0 ? 650 : 400}
+              width={photo.width ?? 1179}
+              height={photo.height ?? 900}
               sizes="(max-width: 640px) 45vw, 30vw"
               className="w-full h-auto object-cover"
             />

@@ -26,7 +26,7 @@ interface CartContextValue {
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
-const STORAGE_KEY = "gorg-cart-v1";
+const STORAGE_KEY = "gorg-cart-v2"; // نسخه‌ی جدید: سبدهای قدیمی با آیتم/قیمت منوی قبلی نادیده گرفته می‌شوند
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);

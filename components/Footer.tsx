@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-
-const PHONE = process.env.NEXT_PUBLIC_PHONE_DISPLAY || "021-22240039";
+import InstagramIcon from "./InstagramIcon";
+import { ADDRESS, INSTAGRAM_ID, INSTAGRAM_URL, PHONE_DISPLAY, PHONE_TEL } from "@/lib/contact";
 
 const LINKS = [
   { href: "/menu", label: "منو" },
@@ -20,7 +20,7 @@ export default function Footer() {
             <span className="font-extrabold text-lg">گرگ</span>
           </div>
           <p className="text-sm text-[var(--color-ash)] leading-7">
-            به غریزه‌ات اعتماد کن. گریل، فست‌فود، ایرانی و ایتالیایی، زیر یک سقف.
+            به غریزه‌ات اعتماد کن. برگر، بریسکت، نشویل و بال، زیر یک سقف.
           </p>
         </div>
 
@@ -40,12 +40,27 @@ export default function Footer() {
         <div>
           <h3 className="font-bold mb-4 text-sm text-[var(--color-bone)]">تماس و ساعات کاری</h3>
           <p className="text-sm text-[var(--color-ash)] leading-7">
-            بلوار اندرزگو، اشکستان‌پور جنوبی، پلاک ۳
+            {ADDRESS}
             <br />
-            تلفن: <span dir="ltr" className="inline-block">{PHONE}</span>
+            تلفن:{" "}
+            <a href={PHONE_TEL} dir="ltr" className="inline-block hover:text-[var(--color-ember-light)]">
+              {PHONE_DISPLAY}
+            </a>
             <br />
             هر روز هفته، ۱۲:۰۰ الی ۲۴:۰۰
           </p>
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`اینستاگرام گرگ، ${INSTAGRAM_ID}`}
+            className="mt-4 inline-flex items-center gap-2.5 text-sm text-[var(--color-ash)] hover:text-[var(--color-ember-light)] transition-colors"
+          >
+            <span className="w-9 h-9 rounded-full border border-white/12 flex items-center justify-center">
+              <InstagramIcon size={18} />
+            </span>
+            <span dir="ltr">@{INSTAGRAM_ID}</span>
+          </a>
         </div>
       </div>
 

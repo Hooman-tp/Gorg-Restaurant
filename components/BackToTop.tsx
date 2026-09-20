@@ -14,7 +14,7 @@ export default function BackToTop() {
   const handleClick = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const lenis = (window as any).__lenis;
-    if (lenis) lenis.scrollTo(0, { duration: 1.1 });
+    if (lenis) lenis.scrollTo(0, { duration: 1.8 });
     else window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

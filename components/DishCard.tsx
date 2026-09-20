@@ -32,8 +32,10 @@ export default function DishCard({ item }: { item: MenuItem }) {
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-bold text-[15px] leading-6">{item.name}</h3>
         </div>
-        <p className="text-xs text-[var(--color-ash)] leading-6 flex-1">{item.description}</p>
-        <div className="flex items-center justify-between pt-1">
+        {item.description && (
+          <p className="text-xs text-[var(--color-ash)] leading-6">{item.description}</p>
+        )}
+        <div className="flex items-center justify-between pt-1 mt-auto">
           <span className="font-extrabold text-sm">{formatPrice(item.price)} تومان</span>
           <AddToCartButton id={item.id} name={item.name} price={item.price} />
         </div>

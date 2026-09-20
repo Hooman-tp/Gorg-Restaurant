@@ -1,26 +1,30 @@
 import Link from "next/link";
 import Image from "next/image";
-import { categories, getSignatureItems } from "@/lib/menuData";
-import { dishImages } from "@/lib/images";
+import { categories, getItemById, getSignatureItems, menuItems } from "@/lib/menuData";
+import { spaceImages } from "@/lib/images";
 import DishCard from "@/components/DishCard";
 import FireStoryShowcase from "@/components/FireStory/FireStoryShowcase";
 import InstallAppSection from "@/components/InstallAppSection";
 
 const CATEGORY_ICONS: Record<string, string> = {
-  grill: "🔥",
-  fastfood: "🍔",
-  iranian: "🍚",
-  italian: "🍝",
+  starters: "🍟",
+  salad: "🥗",
+  burger: "🍔",
+  brisket: "🥪",
+  nashville: "🍗",
   drinks: "🥤",
 };
 
+// عکس‌های تیزر گالری: دو عکس فضا + چند عکس غذا از خود منو
+const teaserFood = ["bg-1", "st-4", "br-5", "na-2"]
+  .map((id) => getItemById(id))
+  .filter((item): item is NonNullable<typeof item> => Boolean(item && item.image))
+  .map((item) => ({ src: item.image as string, alt: item.name }));
+
 const GALLERY_TEASER = [
-  dishImages.interior1,
-  dishImages.grillSteakFlame,
-  dishImages.pizzaPepperoni,
-  dishImages.persianSaffronRice,
-  dishImages.pastaCreamy,
-  dishImages.interior2,
+  { src: spaceImages.interior1, alt: "فضای رستوران گرگ" },
+  ...teaserFood,
+  { src: spaceImages.interior2, alt: "فضای رستوران گرگ" },
 ];
 
 export default function HomePage() {
@@ -45,8 +49,8 @@ export default function HomePage() {
               به غریزه‌ات اعتماد کن.
             </p>
             <p className="text-[var(--color-ash)] leading-8 mb-8 max-w-lg">
-              گریل و استیک روی زغال، فست‌فود سنگین، طعم آشنای غذای ایرانی و
-              فیوژن ایتالیایی؛ چهار دنیای طعم، زیر یک سقف، برای هر شب هفته.
+              برگر، ساندویچ بریسکت، مرغ سوخاری نشویل، بال و سیب‌زمینی؛
+              همه زیر یک سقف، برای هر شب هفته.
             </p>
             <div className="flex flex-wrap items-center gap-4">
               <Link href="/menu" className="btn-primary">
@@ -73,8 +77,8 @@ export default function HomePage() {
         <div className="claw-divider mx-auto mb-6" aria-hidden="true" />
         <p className="text-lg sm:text-xl leading-9 text-[var(--color-bone)]/90">
           گرگ جایی‌ست برای وقتی که واقعاً گرسنه‌اید؛ نه گرسنه‌ی خوردن، گرسنه‌ی
-          طعم. آشپزخانه‌ی ما بین چهار سبک متفاوت رفت‌وآمد می‌کند تا هر بار که
-          می‌آیید، دقیقاً همان چیزی را پیدا کنید که امشب دلتان می‌خواهد.
+          طعم. از بال و برگر تا بریسکت و نشویل، هر بار که می‌آیید دقیقاً همان
+          چیزی را پیدا می‌کنید که امشب دلتان می‌خواهد.
         </p>
         <Link
           href="/about"
@@ -84,13 +88,13 @@ export default function HomePage() {
         </Link>
       </section>
 
-      {/* ─────────────── چهار دنیای طعم ─────────────── */}
+      {/* ─────────────── دسته‌های منو ─────────────── */}
       <section className="max-w-6xl mx-auto px-5 pb-24">
-        <h2 className="text-2xl font-extrabold mb-2">چهار دنیای طعم</h2>
+        <h2 className="text-2xl font-extrabold mb-2">دسته‌های منو</h2>
         <p className="text-[var(--color-ash)] mb-8 text-sm">
-          هر بخش از منوی گرگ، دنیای طعم خودش را دارد.
+          هر بخش از منوی گرگ را جداگانه ببینید.
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {categories.map((cat) => (
             <Link
               key={cat.id}
@@ -112,7 +116,7 @@ export default function HomePage() {
         <div className="flex items-end justify-between mb-8">
           <div>
             <h2 className="text-2xl font-extrabold mb-2">پیشنهاد گرگ</h2>
-            <p className="text-[var(--color-ash)] text-sm">پرطرفدارترین‌های آشپزخانه</p>
+            <p className="text-[var(--color-ash)] text-sm">چند انتخاب از منوی گرگ</p>
           </div>
           <Link href="/menu" className="text-sm font-bold text-[var(--color-ember-light)] hover:underline hidden sm:block">
             مشاهده منو کامل ←
@@ -137,7 +141,9 @@ export default function HomePage() {
             <p className="text-xs text-[var(--color-ash)] mt-1">مشتری همیشگی</p>
           </div>
           <div>
-            <p className="text-3xl font-black text-[var(--color-ember-light)]">۲۹</p>
+            <p className="text-3xl font-black text-[var(--color-ember-light)]">
+              {menuItems.length.toLocaleString("fa-IR")}
+            </p>
             <p className="text-xs text-[var(--color-ash)] mt-1">پرس در منو</p>
           </div>
         </div>
@@ -152,13 +158,13 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-          {GALLERY_TEASER.map((src, i) => (
+          {GALLERY_TEASER.map((photo, i) => (
             <Link
               href="/gallery"
               key={i}
               className="relative aspect-square rounded-xl overflow-hidden gorg-card"
             >
-              <Image src={src} alt="فضای رستوران گرگ" fill sizes="200px" className="object-cover" />
+              <Image src={photo.src} alt={photo.alt} fill sizes="200px" className="object-cover" />
             </Link>
           ))}
         </div>

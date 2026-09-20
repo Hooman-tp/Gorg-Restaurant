@@ -1,14 +1,17 @@
+import { ADDRESS, INSTAGRAM_URL, PHONE_DISPLAY } from "@/lib/contact";
+
 export default function StructuredData() {
   const data = {
     "@context": "https://schema.org",
     "@type": "Restaurant",
     name: "گرگ | GORG",
-    servesCuisine: ["Grill", "Fast Food", "Persian", "Italian"],
+    servesCuisine: ["Burger", "Sandwich", "Fried Chicken", "Fast Food"],
     priceRange: "$$",
-    telephone: process.env.NEXT_PUBLIC_PHONE_DISPLAY || "021-22240039",
+    telephone: PHONE_DISPLAY,
+    sameAs: [INSTAGRAM_URL],
     address: {
       "@type": "PostalAddress",
-      streetAddress: "بلوار اندرزگو، اشکستان‌پور جنوبی، پلاک ۳",
+      streetAddress: ADDRESS,
       addressLocality: "تهران",
       addressCountry: "IR",
     },

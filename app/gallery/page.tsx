@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { dishImages, brand } from "@/lib/images";
+import { spaceImages } from "@/lib/images";
+import { menuItems } from "@/lib/menuData";
 import GalleryGrid from "@/components/GalleryGrid";
 
 export const metadata: Metadata = {
@@ -7,20 +8,16 @@ export const metadata: Metadata = {
   description: "نمایی از فضا و غذاهای رستوران گرگ.",
 };
 
+// عکس غذاها از خود منو می‌آید (نوشیدنی‌ها در گالری نیستند)
+const foodPhotos = menuItems
+  .filter((item) => item.category !== "drinks" && item.image)
+  .map((item) => ({ src: item.image as string, alt: item.name }));
+
 const photos = [
-  { src: dishImages.interior1, alt: "فضای داخلی رستوران گرگ" },
-  { src: brand.platter, alt: "سینی مشترک گرگ" },
-  { src: dishImages.grillSteakWine, alt: "استیک آنگوس گریل‌شده" },
-  { src: dishImages.persianRiceOlives, alt: "باقالی‌پلو با ماهیچه" },
-  { src: dishImages.pizzaPepperoni, alt: "پیتزای آتیشی" },
-  { src: dishImages.interior2, alt: "فضای نشیمن رستوران گرگ" },
-  { src: dishImages.pastaCreamy, alt: "پاستای آلفردو" },
-  { src: dishImages.grillCharcoal, alt: "گریل روی زغال" },
-  { src: dishImages.burgerGorg, alt: "برگر دوطبقه گرگ" },
-  { src: dishImages.persianGrillTable, alt: "کباب و سبزیجات گریل‌شده" },
-  { src: dishImages.lasagnaSauce, alt: "لازانیای گوشت" },
-  { src: dishImages.caesarSalad, alt: "سالاد سزار" },
-  { src: dishImages.hotdogCheese, alt: "هات‌داگ آلمانی" },
+  { src: spaceImages.interior1, alt: "فضای داخلی رستوران گرگ", width: 500, height: 650 },
+  ...foodPhotos.slice(0, 7),
+  { src: spaceImages.interior2, alt: "فضای نشیمن رستوران گرگ", width: 500, height: 400 },
+  ...foodPhotos.slice(7),
 ];
 
 export default function GalleryPage() {
