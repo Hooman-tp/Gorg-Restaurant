@@ -40,7 +40,7 @@ export default function CartDrawer() {
           </button>
         </div>
 
-        <div data-lenis-prevent className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {lines.length === 0 ? (
             <p className="text-[var(--color-ash)] text-sm mt-10 text-center">
               سبد سفارش شما خالی است. از منو چیزی اضافه کنید.

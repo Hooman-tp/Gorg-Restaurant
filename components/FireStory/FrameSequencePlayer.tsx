@@ -52,7 +52,6 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
   const stepRef = useRef<HTMLCanvasElement | null>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const currentIndexRef = useRef(0);
-  const lastDrawnRef = useRef(-1); // آخرین فریمی که واقعاً روی بوم کشیده شده
   const [firstFrameReady, setFirstFrameReady] = useState(false);
   const [aspect, setAspect] = useState(16 / 9);
 
@@ -60,9 +59,7 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // سقف ۲: فریم‌های فیلم بیشتر از این جزئیات ندارند و روی گوشی‌های ۳x
-    // رسم هر فریم بی‌دلیل سنگین می‌شد (اسکرول را می‌پراند).
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = window.devicePixelRatio || 1;
     const pxW = Math.round(canvas.clientWidth * dpr);
     const pxH = Math.round(canvas.clientHeight * dpr);
     if (pxW === 0 || pxH === 0) return;
@@ -117,24 +114,41 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
     bctx.drawImage(stepRef.current, 0, 98, 192, 10, 0, 1, BACKDROP_W, 1); // لبه‌ی پایین
   };
 
+  const isReady = (img?: HTMLImageElement) => !!img && img.complete && img.naturalWidth > 0;
+
+  // روی شبکه‌ی کند (مثلاً LTE)، ممکن است دقیقاً فریمی که الان لازم داریم
+  // هنوز دانلود نشده باشد. قبلاً در این حالت drawFrame هیچ‌کاری نمی‌کرد
+  // و بومِ صفحه دقیقاً روی همان فریمِ قبلی «فریز» می‌ماند — همان حسِ
+  // گیر کردنِ مصنوعی که با اسکرولِ سریع دیده می‌شود. حالا به‌جایش
+  // نزدیک‌ترین فریمِ آماده را نشان می‌دهیم تا چیزی هرچند نه ۱۰۰٪ دقیق،
+  // ولی هم‌جهت با اسکرول دیده شود؛ و به‌محض رسیدنِ فریمِ واقعی (در
+  // onload پایین‌تر) خودش جای آن را می‌گیرد.
+  const resolveImage = (index: number): HTMLImageElement | undefined => {
+    const images = imagesRef.current;
+    const direct = images[index];
+    if (isReady(direct)) return direct;
+    for (let offset = 1; offset < images.length; offset++) {
+      const before = images[index - offset];
+      if (isReady(before)) return before;
+      const after = images[index + offset];
+      if (isReady(after)) return after;
+    }
+    return undefined;
+  };
+
   const drawFrame = (index: number) => {
     const canvas = canvasRef.current;
-    const img = imagesRef.current[index];
-    if (!canvas || !img || !img.complete || img.naturalWidth === 0) return;
-    if (canvas.clientWidth === 0 || canvas.clientHeight === 0) return;
+    const img = resolveImage(index);
+    if (!canvas || !img) return;
 
     if (fit === "contain-blur") drawContain(canvas, img);
     else drawCover(canvas, img);
-    lastDrawnRef.current = index;
   };
 
   useImperativeHandle(ref, () => ({
     setProgress: (progress: number) => {
       const index = Math.min(frameCount - 1, Math.max(0, Math.round(progress * (frameCount - 1))));
       currentIndexRef.current = index;
-      // اسکرول نرم ده‌ها بار در ثانیه صدا می‌زند ولی فریم خیلی کمتر عوض می‌شود؛
-      // اگر همان فریمِ قبلی است دوباره نکشیم.
-      if (index === lastDrawnRef.current) return;
       drawFrame(index);
     },
   }));
@@ -142,18 +156,21 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
   useEffect(() => {
     let cancelled = false;
     const images: HTMLImageElement[] = [];
-    lastDrawnRef.current = -1;
 
     for (let i = 0; i < frameCount; i++) {
       const img = new Image();
+      img.decoding = "async";
       img.src = `${framePrefix}${String(i + 1).padStart(3, "0")}.jpg`;
       img.onload = () => {
-        if (i === 0 && !cancelled) {
+        if (cancelled) return;
+        if (i === 0) {
           setAspect(img.naturalWidth / img.naturalHeight);
-          drawFrame(0);
           setFirstFrameReady(true);
           onFirstFrameReady?.();
         }
+        // هر فریمی که برسد ممکن است دقیقاً همانی باشد که الان لازم داریم
+        // (یا از فریمِ جایگزینِ فعلی به هدف نزدیک‌تر باشد)، پس دوباره رسم کن
+        drawFrame(currentIndexRef.current);
       };
       images.push(img);
     }
