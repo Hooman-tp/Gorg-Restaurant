@@ -13,6 +13,8 @@ export interface StoredOrder {
   total: number;
   status: "received" | "preparing" | "ready" | "delivered" | "cancelled";
   ref_id: string | null;
+  lat?: number | null;
+  lng?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -27,29 +29,63 @@ interface SaveOrderInput {
   lines: CartLine[];
   total: number;
   refId?: number | string;
+  lat?: number;
+  lng?: number;
 }
 
-/** سفارش را در دیتابیس ذخیره می‌کند. اگر دیتابیس وصل نباشد، بی‌صدا نادیده می‌گیرد */
-export async function saveOrder(order: SaveOrderInput): Promise<boolean> {
-  if (!isDbConfigured()) return false;
+/**
+ * created: تازه ثبت شد · exists: قبلاً همین سفارش ثبت شده بود (مثلاً رفرش صفحه‌ی نتیجه)
+ * duplicate_payment: همین پرداخت قبلاً برای سفارشِ دیگری استفاده شده
+ * skipped/failed: دیتابیس وصل نیست یا خطا داد (سفارش پرداخت‌شده است، پس اعلان باز هم ارسال می‌شود)
+ */
+export type SaveOrderResult = "created" | "exists" | "duplicate_payment" | "skipped" | "failed";
+
+/** سفارشِ «پرداخت‌شده» را در دیتابیس ذخیره می‌کند. فقط بعد از تأیید پرداخت صدا زده شود. */
+export async function saveOrder(order: SaveOrderInput): Promise<SaveOrderResult> {
+  if (!isDbConfigured()) return "skipped";
   const sql = getSql();
-  if (!sql) return false;
+  if (!sql) return "skipped";
 
   try {
-    await sql`
-      INSERT INTO orders (order_code, name, phone, address, order_type, notes, lines, total, ref_id, status)
-      VALUES (
-        ${order.orderCode}, ${order.name}, ${order.phone}, ${order.address || null},
-        ${order.orderType}, ${order.notes || null}, ${JSON.stringify(order.lines)}::jsonb,
-        ${order.total}, ${order.refId ? String(order.refId) : null},
-        ${order.refId ? "received" : "received"}
-      )
-      ON CONFLICT (order_code) DO UPDATE SET ref_id = EXCLUDED.ref_id, updated_at = now()
-    `;
-    return true;
+    const refId = order.refId ? String(order.refId) : null;
+
+    // یک پرداخت فقط برای یک سفارش معتبر است
+    if (refId) {
+      const dup = await sql`SELECT 1 FROM orders WHERE ref_id = ${refId} AND order_code <> ${order.orderCode} LIMIT 1`;
+      if (dup.length > 0) return "duplicate_payment";
+    }
+
+    let rows;
+    try {
+      rows = await sql`
+        INSERT INTO orders (order_code, name, phone, address, order_type, notes, lines, total, ref_id, status, lat, lng)
+        VALUES (
+          ${order.orderCode}, ${order.name}, ${order.phone}, ${order.address || null},
+          ${order.orderType}, ${order.notes || null}, ${JSON.stringify(order.lines)}::jsonb,
+          ${order.total}, ${refId}, 'received', ${order.lat ?? null}, ${order.lng ?? null}
+        )
+        ON CONFLICT (order_code) DO NOTHING
+        RETURNING id
+      `;
+    } catch (err) {
+      // ستون‌های lat/lng هنوز ساخته نشده‌اند (schema.sql دوباره اجرا نشده)؛
+      // سفارشِ پرداخت‌شده نباید به این خاطر گم شود
+      console.error("saveOrder با موقعیت خطا داد؛ بدون آن دوباره تلاش می‌شود", err);
+      rows = await sql`
+        INSERT INTO orders (order_code, name, phone, address, order_type, notes, lines, total, ref_id, status)
+        VALUES (
+          ${order.orderCode}, ${order.name}, ${order.phone}, ${order.address || null},
+          ${order.orderType}, ${order.notes || null}, ${JSON.stringify(order.lines)}::jsonb,
+          ${order.total}, ${refId}, 'received'
+        )
+        ON CONFLICT (order_code) DO NOTHING
+        RETURNING id
+      `;
+    }
+    return rows.length > 0 ? "created" : "exists";
   } catch (err) {
     console.error("saveOrder error", err);
-    return false;
+    return "failed";
   }
 }
 

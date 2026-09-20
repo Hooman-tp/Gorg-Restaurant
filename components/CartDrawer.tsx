@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 function formatPrice(n: number) {
   return n.toLocaleString("fa-IR");
@@ -9,6 +10,7 @@ function formatPrice(n: number) {
 
 export default function CartDrawer() {
   const { lines, total, isOpen, closeCart, incrementItem, decrementItem, removeItem } = useCart();
+  const { phone, ready, openLogin } = useAuth();
 
   return (
     <>
@@ -89,13 +91,32 @@ export default function CartDrawer() {
               <span className="text-[var(--color-ash)]">جمع کل</span>
               <span className="font-extrabold text-base">{formatPrice(total)} تومان</span>
             </div>
-            <Link
-              href="/checkout"
-              onClick={closeCart}
-              className="btn-primary w-full text-sm"
-            >
-              ادامه و ثبت سفارش
-            </Link>
+            {ready && !phone ? (
+              // ثبت سفارش فقط برای کاربرِ واردشده با شماره موبایل
+              <>
+                <p className="text-xs text-[var(--color-ember-light)] text-center leading-6">
+                  برای ثبت سفارش آنلاین لطفاً وارد شوید
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeCart();
+                    openLogin();
+                  }}
+                  className="btn-primary w-full text-sm"
+                >
+                  ورود با شماره موبایل
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/checkout"
+                onClick={closeCart}
+                className="btn-primary w-full text-sm"
+              >
+                ادامه و ثبت سفارش
+              </Link>
+            )}
           </div>
         )}
       </aside>

@@ -34,6 +34,12 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
+  const loginBtnRef = useRef<HTMLButtonElement>(null);
+  const [hintX, setHintX] = useState<number | null>(null);
+
+  // تا وقتی کاربر با شماره موبایل وارد نشده، کلید «سفارش آنلاین» مخفی است و به‌جایش
+  // راهنمای «برای سفارش آنلاین لطفاً وارد شوید» زیر کلید ورود نشان داده می‌شود
+  const showLoginHint = ready && !phone && !menuOpen;
 
   // بستن منوی حساب با کلیک بیرون از آن یا Escape
   useEffect(() => {
@@ -53,6 +59,30 @@ export default function Header() {
       document.removeEventListener("keydown", onKey);
     };
   }, [accountOpen]);
+
+  // مرکزِ کلید ورود را اندازه می‌گیریم تا دستِ اشاره‌کننده دقیقاً زیرِ آن (روی موبایل و
+  // دسکتاپ) قرار بگیرد
+  useEffect(() => {
+    if (!ready || phone) return;
+    const measure = () => {
+      const el = loginBtnRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setHintX(Math.round(r.left + r.width / 2));
+    };
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    measure();
+    window.addEventListener("resize", measure);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (ro) {
+      ro.observe(document.documentElement);
+      if (loginBtnRef.current) ro.observe(loginBtnRef.current);
+    }
+    return () => {
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
+  }, [ready, phone]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -97,12 +127,14 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/menu"
-            className="hidden sm:inline-flex btn-primary !py-2.5 !px-5 text-sm"
-          >
-            سفارش آنلاین
-          </Link>
+          {ready && phone && (
+            <Link
+              href="/menu"
+              className="hidden sm:inline-flex btn-primary !py-2.5 !px-5 text-sm"
+            >
+              سفارش آنلاین
+            </Link>
+          )}
 
           <button
             onClick={openCart}
@@ -130,6 +162,7 @@ export default function Header() {
           {/* ورود / حساب کاربری (با شماره موبایل و پیامک) */}
           {ready && !phone && (
             <button
+              ref={loginBtnRef}
               onClick={openLogin}
               aria-label="ورود به حساب کاربری"
               className="h-10 w-10 sm:w-auto sm:px-4 rounded-full border border-white/12 flex items-center justify-center gap-2 hover:border-[var(--color-ember)] transition-colors"
@@ -209,8 +242,40 @@ export default function Header() {
         </div>
       </div>
 
+      {/* راهنمای ورود: روی صفحه‌های عریض زیرِ کلید ورود می‌آید؛ روی موبایل به لبه‌ی چپ می‌چسبد */}
+      {showLoginHint && hintX !== null && (
+        <button
+          type="button"
+          onClick={openLogin}
+          aria-label="برای سفارش آنلاین لطفاً وارد شوید"
+          className="login-hint absolute top-full z-[101] block text-right"
+          style={{ left: Math.max(12, hintX - 110) }}
+        >
+          {/* دستِ اشاره‌کننده: با انگشت اشاره، کلید ورود را نشان می‌دهد و بالا و پایین می‌رود */}
+          <span
+            aria-hidden="true"
+            className="hand-bob absolute top-1 block w-8 text-center text-[28px] leading-none select-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+            style={{ left: hintX - Math.max(12, hintX - 110) - 16 }}
+          >
+            👆
+          </span>
+          <span className="mt-10 block whitespace-nowrap rounded-full bg-[var(--color-ember)] px-3.5 py-1.5 text-[11px] sm:text-xs font-bold text-white shadow-[0_6px_20px_rgba(0,0,0,0.45)]">
+            برای سفارش آنلاین لطفاً وارد شوید
+          </span>
+        </button>
+      )}
+
       {menuOpen && (
         <nav className="md:hidden bg-[var(--color-ink)]/97 backdrop-blur-md border-t border-white/5 px-5 py-3 flex flex-col gap-1">
+          {ready && phone && (
+            <Link
+              href="/menu"
+              onClick={() => setMenuOpen(false)}
+              className="btn-primary !py-3 text-sm mb-2"
+            >
+              سفارش آنلاین
+            </Link>
+          )}
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}

@@ -30,6 +30,11 @@ function sign(purpose: string, value: string): string {
   return createHmac("sha256", secret).update(`${purpose}:${value}`).digest("hex");
 }
 
+/** امضای HMAC برای هر مقدار (مثلاً جزئیات سفارشِ در انتظار پرداخت) تا در مسیر قابل دستکاری نباشد */
+export function signValue(purpose: string, value: string): string {
+  return sign(purpose, value);
+}
+
 /** کد ۶ رقمیِ تصادفی (با منبع تصادفیِ امنِ سیستم‌عامل) */
 export function generateOtpCode(): string {
   return String(randomInt(100000, 1000000));

@@ -152,6 +152,18 @@ export default function AdminPage() {
                 <span dir="ltr">{order.phone}</span>
               </p>
               <p>{order.order_type === "delivery" ? `ارسال: ${order.address}` : "تحویل حضوری"}</p>
+              {order.order_type === "delivery" && order.lat != null && order.lng != null && (
+                <p>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${order.lat},${order.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--color-ember-light)] hover:underline"
+                  >
+                    📍 موقعیت روی نقشه
+                  </a>
+                </p>
+              )}
               {order.notes && <p>توضیحات: {order.notes}</p>}
               {order.ref_id && <p>پیگیری بانکی: <span dir="ltr">{order.ref_id}</span></p>}
             </div>

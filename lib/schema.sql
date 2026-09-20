@@ -50,3 +50,16 @@ CREATE TABLE IF NOT EXISTS otp_requests (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_otp_requests_ip ON otp_requests(ip, created_at DESC);
+
+-- ═══════════════ نام، آدرس و موقعیتِ ذخیره‌شده‌ی مشتری + موقعیت سفارش روی نقشه ═══════════════
+-- (بی‌خطر است؛ اگر ستون‌ها از قبل باشند چیزی عوض نمی‌شود. حتماً یک‌بار اجرایش کنید.)
+
+-- برای پر شدن خودکارِ «نام و نام‌خانوادگی» و «آدرس» در سفارش‌های بعدیِ همین شماره
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(120);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+
+-- موقعیتی که مشتری روی نقشه انتخاب کرده (برای پیک)
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;

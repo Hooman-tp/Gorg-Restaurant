@@ -290,3 +290,33 @@ html.lenis body {
   .auth-fade, .auth-rise, .auth-step, .auth-shake, .auth-pop, .auth-glow { animation: none; }
   .auth-draw { animation: none; stroke-dashoffset: 0 !important; }
 }
+
+/* ═══════════════ راهنمای «برای سفارش آنلاین وارد شوید» (دستِ اشاره‌کننده) ═══════════════ */
+@keyframes hand-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-11px); }
+}
+@keyframes login-hint-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.hand-bob { animation: hand-bob 1s ease-in-out infinite; }
+.login-hint { animation: login-hint-in 0.5s 0.3s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .hand-bob, .login-hint { animation: none; }
+}
+
+/* ═══════════════ نقشه‌ی انتخاب آدرس (Leaflet) ═══════════════ */
+.address-map .leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #e9e4dc;
+  font-family: inherit;
+}
+/* تیلوینددِ سراسری عکس‌ها را max-width:100% می‌کند و کاشی‌های نقشه را خراب می‌کند */
+.address-map .leaflet-container img.leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
+}
+.map-pin { transform: translate(-50%, -100%); transition: transform 0.15s ease-out; }
+.map-pin.is-moving { transform: translate(-50%, calc(-100% - 12px)); }

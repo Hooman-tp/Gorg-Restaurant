@@ -6,8 +6,9 @@
  *   ZARINPAL_MERCHANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
  *   ZARINPAL_SANDBOX=true   (برای تست قبل از تأیید نهایی درگاه؛ در حالت واقعی حذفش کنید یا false بگذارید)
  *
- * تا وقتی ZARINPAL_MERCHANT_ID تنظیم نشده، جریان پرداخت به‌طور کامل غیرفعال
- * می‌ماند و سایت به روال قبلی (ثبت مستقیم سفارش بدون پرداخت آنلاین) برمی‌گردد.
+ * تا وقتی ZARINPAL_MERCHANT_ID تنظیم نشده، سفارش آنلاین «ثبت نمی‌شود» و به مشتری
+ * پیام «پرداخت فعلاً فعال نیست» نشان داده می‌شود. سفارش هرگز بدون پرداخت ثبت
+ * نمی‌شود؛ ثبت فقط بعد از تأییدِ زرین‌پال (verify) در /api/checkout/confirm انجام می‌شود.
  */
 
 const MERCHANT_ID = process.env.ZARINPAL_MERCHANT_ID;

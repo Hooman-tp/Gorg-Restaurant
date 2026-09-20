@@ -5,6 +5,7 @@ import { galleryPhotos } from "@/lib/gallery";
 import DishCard from "@/components/DishCard";
 import FireStoryShowcase from "@/components/FireStory/FireStoryShowcase";
 import InstallAppSection from "@/components/InstallAppSection";
+import OrderButton from "@/components/OrderButton";
 
 const CATEGORY_ICONS: Record<string, string> = {
   starters: "🍟",
@@ -175,9 +176,7 @@ export default function HomePage() {
             به غریزه‌تون گوش بدید. همین حالا سفارش بدید یا میز رزرو کنید.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/menu" className="btn-primary ember-pulse">
-              سفارش آنلاین
-            </Link>
+            <OrderButton className="btn-primary ember-pulse">سفارش آنلاین</OrderButton>
             <Link href="/contact" className="btn-outline">
               اطلاعات تماس
             </Link>

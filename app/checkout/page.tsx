@@ -2,94 +2,106 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useCart } from "@/context/CartContext";
-import { isValidIranianPhone } from "@/lib/validation";
+import { useAuth } from "@/context/AuthContext";
+import { maskMobile } from "@/lib/phone";
+import type { PickedLocation } from "@/components/AddressMapPicker";
 
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "989120000000";
-const REMEMBER_KEY = "gorg-checkout-info-v1";
+// نقشه فقط وقتی کاربر بازش کند بارگذاری می‌شود (کتابخانه‌ی نقشه سنگین است)
+const AddressMapPicker = dynamic(() => import("@/components/AddressMapPicker"), { ssr: false });
 
 function formatPrice(n: number) {
   return n.toLocaleString("fa-IR");
 }
 
-type Status = "idle" | "sending" | "success" | "error";
+type Status = "idle" | "sending" | "error";
 
 export default function CheckoutPage() {
-  const { lines, total, clearCart } = useCart();
+  const { lines, total } = useCart();
+  const { phone, ready, openLogin } = useAuth();
   const [status, setStatus] = useState<Status>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
   const [orderType, setOrderType] = useState<"delivery" | "pickup">("delivery");
-  const [form, setForm] = useState({ name: "", phone: "", address: "", notes: "" });
-  const [phoneError, setPhoneError] = useState("");
-  const [orderCode, setOrderCode] = useState("");
+  const [form, setForm] = useState({ name: "", address: "", notes: "" });
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // اگر مشتری آدرس را خودش تایپ/ویرایش کرده باشد، آدرسِ پیشنهادیِ نقشه رویش نوشته نمی‌شود
+  const [addressEdited, setAddressEdited] = useState(false);
 
-  // پر کردن خودکار فرم از اطلاعات ذخیره‌شده‌ی سفارش قبلی (در همین مرورگر).
-  // این effect برای همگام‌سازی state با localStorage (یک سیستم خارجی) است،
-  // نه مشتق‌شده از state دیگر، پس اجرای setState یک‌بار در mount لازم است.
+  // نام و آدرسِ ذخیره‌شده‌ی همین شماره‌ی موبایل (از سفارش قبلی) خودکار پر می‌شود
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(REMEMBER_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setForm((f) => ({ ...f, name: parsed.name || "", phone: parsed.phone || "", address: parsed.address || "" }));
-      }
-    } catch {
-      // نادیده گرفته می‌شود
-    }
-  }, []);
+    if (!phone) return;
+    let cancelled = false;
+    fetch("/api/profile", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const p = d?.profile;
+        if (cancelled || !p) return;
+        setForm((f) => ({ ...f, name: f.name || p.name || "", address: f.address || p.address || "" }));
+        if (typeof p.lat === "number" && typeof p.lng === "number") {
+          setLocation((cur) => cur ?? { lat: p.lat, lng: p.lng });
+        }
+        if (p.address) setAddressEdited(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [phone]);
 
-  const whatsappText = encodeURIComponent(
-    `سلام گرگ، سفارش من (کد ${orderCode}):\n${lines.map((l) => `${l.qty}× ${l.name}`).join("\n")}\n\nجمع: ${formatPrice(
-      total
-    )} تومان\nنام: ${form.name || "-"}\nتلفن: ${form.phone || "-"}\n${
-      orderType === "delivery" ? "آدرس: " + (form.address || "-") : "تحویل حضوری"
-    }`
-  );
+  function handlePicked(loc: PickedLocation) {
+    setLocation({ lat: loc.lat, lng: loc.lng });
+    if (loc.text && (!form.address.trim() || !addressEdited)) {
+      setForm((f) => ({ ...f, address: loc.text }));
+      setAddressEdited(false);
+    }
+    setPickerOpen(false);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (lines.length === 0) return;
-
-    if (!isValidIranianPhone(form.phone)) {
-      setPhoneError("شماره موبایل یا تلفن ثابت را درست وارد کنید (مثلاً 09123456789)");
-      return;
-    }
-    setPhoneError("");
+    if (lines.length === 0 || status === "sending") return;
 
     setStatus("sending");
+    setErrorMsg("");
     try {
       const res = await fetch("/api/checkout/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines, total, orderType, ...form }),
+        // فقط شناسه و تعداد؛ قیمت و شماره‌ی موبایل را خودِ سرور تعیین می‌کند
+        body: JSON.stringify({
+          lines: lines.map((l) => ({ id: l.id, qty: l.qty })),
+          orderType,
+          name: form.name,
+          address: orderType === "delivery" ? form.address : "",
+          notes: form.notes,
+          lat: orderType === "delivery" ? location?.lat : undefined,
+          lng: orderType === "delivery" ? location?.lng : undefined,
+        }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "failed");
+      const data = await res.json().catch(() => ({}));
 
-      // اگر درگاه پرداخت فعال باشد، کاربر به صفحه‌ی پرداخت زرین‌پال منتقل می‌شود
-      if (data.redirectUrl) {
-        window.location.href = data.redirectUrl;
+      if (res.status === 401) {
+        setStatus("idle");
+        openLogin();
+        return;
+      }
+      if (!res.ok || !data.redirectUrl) {
+        setErrorMsg(data?.error || "شروع پرداخت با مشکل مواجه شد. لطفاً دوباره تلاش کنید.");
+        setStatus("error");
         return;
       }
 
-      // در غیر این صورت (هنوز درگاه پرداخت وصل نشده)، سفارش مستقیم ثبت شده است
-      setOrderCode(data.orderCode);
-      setStatus("success");
-      clearCart();
-      try {
-        window.localStorage.setItem(
-          REMEMBER_KEY,
-          JSON.stringify({ name: form.name, phone: form.phone, address: form.address })
-        );
-      } catch {
-        // ذخیره‌سازی ممکن است در حالت خصوصی مرورگر ناموفق باشد؛ بی‌اهمیت است
-      }
+      // انتقال به صفحه‌ی پرداخت. سفارش «فقط» بعد از پرداخت موفق (در صفحه‌ی verify) ثبت می‌شود.
+      window.location.href = data.redirectUrl;
     } catch {
+      setErrorMsg("اتصال برقرار نشد. اینترنت خود را بررسی کنید و دوباره تلاش کنید.");
       setStatus("error");
     }
   };
 
-  if (lines.length === 0 && status !== "success") {
+  if (lines.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-5 pt-32 pb-24 text-center">
         <h1 className="text-2xl font-extrabold mb-3">سبد سفارش خالی است</h1>
@@ -103,54 +115,31 @@ export default function CheckoutPage() {
     );
   }
 
-  if (status === "success") {
+  if (!ready) {
+    return <div className="max-w-2xl mx-auto px-5 pt-32 pb-24 text-center text-[var(--color-ash)]">در حال بارگذاری…</div>;
+  }
+
+  // ثبت سفارش فقط با شماره‌ی موبایلِ تأییدشده
+  if (!phone) {
     return (
       <div className="max-w-2xl mx-auto px-5 pt-32 pb-24 text-center">
-        <div className="w-16 h-16 rounded-full bg-[var(--color-ember)]/15 border border-[var(--color-ember)]/40 flex items-center justify-center mx-auto mb-6 text-3xl">
-          ✓
-        </div>
-        <h1 className="text-2xl font-extrabold mb-3">سفارش شما ثبت شد</h1>
-
-        <div className="inline-block gorg-card rounded-2xl px-6 py-4 mb-6">
-          <p className="text-xs text-[var(--color-ash)] mb-1">کد پیگیری سفارش</p>
-          <p className="text-2xl font-black tracking-wider" dir="ltr">{orderCode}</p>
-          <button
-            onClick={() => navigator.clipboard?.writeText(orderCode)}
-            className="text-xs text-[var(--color-ember-light)] mt-2 hover:underline"
-          >
-            کپی کردن کد
-          </button>
-        </div>
-
-        <p className="text-[var(--color-ash)] mb-4 leading-7">
-          گرگ سفارشتان را دریافت کرد و به‌زودی برای تأیید نهایی با شما تماس
-          می‌گیریم. این کد را نگه دارید؛ هر وقت خواستید از صفحه‌ی «پیگیری
-          سفارش» با همین کد و شماره تماستان وضعیت سفارش را ببینید.
+        <h1 className="text-2xl font-extrabold mb-3">برای ثبت سفارش وارد شوید</h1>
+        <p className="text-[var(--color-ash)] mb-8 leading-7">
+          سبد سفارش شما محفوظ است. با شماره موبایلتان وارد شوید تا سفارش را تکمیل کنید.
         </p>
-        <p className="text-sm text-[var(--color-ember-light)] font-bold mb-8">
-          {orderType === "delivery" ? "زمان تقریبی ارسال: ۴۵ تا ۶۰ دقیقه" : "زمان تقریبی آماده‌سازی: ۲۵ تا ۳۵ دقیقه"}
-        </p>
-
-        <div className="flex flex-wrap justify-center gap-4">
-          <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappText}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary"
-          >
-            ارسال در واتساپ
-          </a>
-          <Link href="/track" className="btn-outline">
-            پیگیری سفارش
-          </Link>
-        </div>
+        <button type="button" onClick={openLogin} className="btn-primary">
+          ورود با شماره موبایل
+        </button>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto px-5 pt-28 pb-24">
-      <h1 className="text-3xl font-black mb-8">تکمیل سفارش</h1>
+      <h1 className="text-3xl font-black mb-2">تکمیل سفارش</h1>
+      <p className="text-sm text-[var(--color-ash)] mb-8">
+        ثبت‌شده با شماره <span dir="ltr">{maskMobile(phone)}</span>
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
         <div className="md:col-span-2 order-2 md:order-1">
@@ -206,6 +195,7 @@ export default function CheckoutPage() {
             <input
               id="name"
               required
+              autoComplete="name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full bg-[var(--color-charcoal)] border border-white/12 rounded-xl px-4 py-3 text-sm focus:border-[var(--color-ember)] outline-none"
@@ -213,47 +203,50 @@ export default function CheckoutPage() {
             />
           </div>
 
-          <div>
-            <label htmlFor="phone" className="block text-sm font-bold mb-2">
-              شماره تماس
-            </label>
-            <input
-              id="phone"
-              required
-              inputMode="tel"
-              dir="ltr"
-              value={form.phone}
-              onChange={(e) => {
-                setForm({ ...form, phone: e.target.value });
-                if (phoneError) setPhoneError("");
-              }}
-              onBlur={() => {
-                if (form.phone && !isValidIranianPhone(form.phone)) {
-                  setPhoneError("شماره موبایل یا تلفن ثابت را درست وارد کنید (مثلاً 09123456789)");
-                }
-              }}
-              className={`w-full bg-[var(--color-charcoal)] border rounded-xl px-4 py-3 text-sm outline-none text-left ${
-                phoneError ? "border-red-500" : "border-white/12 focus:border-[var(--color-ember)]"
-              }`}
-              placeholder="09123456789"
-            />
-            {phoneError && <p className="text-xs text-red-400 mt-2">{phoneError}</p>}
-          </div>
-
           {orderType === "delivery" && (
             <div>
-              <label htmlFor="address" className="block text-sm font-bold mb-2">
-                آدرس دقیق
-              </label>
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <label htmlFor="address" className="block text-sm font-bold">
+                  آدرس دقیق
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--color-ember-light)] border border-[var(--color-ember)]/50 rounded-full px-3.5 py-1.5 hover:bg-[var(--color-ember)]/10 transition-colors"
+                >
+                  <span aria-hidden="true">📍</span>
+                  {location ? "تغییر موقعیت روی نقشه" : "انتخاب روی نقشه"}
+                </button>
+              </div>
               <textarea
                 id="address"
                 required
+                autoComplete="street-address"
                 rows={3}
                 value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, address: e.target.value });
+                  setAddressEdited(true);
+                }}
                 className="w-full bg-[var(--color-charcoal)] border border-white/12 rounded-xl px-4 py-3 text-sm focus:border-[var(--color-ember)] outline-none resize-none"
-                placeholder="خیابان، کوچه، پلاک، واحد"
+                placeholder="خیابان، کوچه، پلاک، واحد — یا «انتخاب روی نقشه» را بزنید"
               />
+              {location ? (
+                <p className="mt-2 flex items-center justify-between gap-3 text-xs text-emerald-400">
+                  <span>✓ موقعیت شما روی نقشه ثبت شد؛ پلاک و واحد را در آدرس بنویسید.</span>
+                  <button
+                    type="button"
+                    onClick={() => setLocation(null)}
+                    className="shrink-0 text-[var(--color-ash)] hover:text-[var(--color-ember-light)]"
+                  >
+                    حذف
+                  </button>
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-[var(--color-ash)]">
+                  آدرس را می‌توانید تایپ کنید یا روی نقشه انتخاب کنید (انتخاب روی نقشه دقیق‌تر و سریع‌تر است).
+                </p>
+              )}
             </div>
           )}
 
@@ -272,17 +265,23 @@ export default function CheckoutPage() {
           </div>
 
           {status === "error" && (
-            <p className="text-sm text-[var(--color-ember-light)]">
-              ثبت سفارش با مشکل مواجه شد. لطفاً دوباره تلاش کنید یا مستقیم در
-              واتساپ پیام بدهید.
+            <p role="alert" className="text-sm text-[var(--color-ember-light)] leading-7">
+              {errorMsg}
             </p>
           )}
 
           <button type="submit" disabled={status === "sending"} className="btn-primary w-full disabled:opacity-60">
-            {status === "sending" ? "در حال ثبت…" : `ثبت نهایی سفارش · ${formatPrice(total)} تومان`}
+            {status === "sending" ? "در حال انتقال به درگاه پرداخت…" : `پرداخت و ثبت سفارش · ${formatPrice(total)} تومان`}
           </button>
+          <p className="text-xs text-[var(--color-ash)] text-center leading-6">
+            سفارش شما فقط بعد از پرداخت موفق ثبت و برای رستوران ارسال می‌شود.
+          </p>
         </form>
       </div>
+
+      {pickerOpen && (
+        <AddressMapPicker initial={location} onConfirm={handlePicked} onClose={() => setPickerOpen(false)} />
+      )}
     </div>
   );
 }
