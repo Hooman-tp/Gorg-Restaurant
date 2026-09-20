@@ -11,8 +11,32 @@ import FrameSequencePlayer, { FrameSequenceHandle } from "./FrameSequencePlayer"
 
 const MOBILE_BREAKPOINT = 768;
 
-const DESKTOP_FRAMES = { count: 100, prefix: "/video/frames/frame_", reach: 36 };
-const MOBILE_FRAMES = { count: 100, prefix: "/video/frames-mobile/frame_", reach: 27 };
+// ═══════════════ نرمیِ «سینمایی» فیلم ═══════════════
+// فیلم مستقیم به موقعیتِ اسکرول چسبیده نیست؛ یک «دنبال‌کننده‌ی فنری» بین
+// این دو قرار دارد (SmoothDamp؛ همان الگوریتمِ Unity/بازی‌ها). فرقش با
+// scrub/lerp این است که «سرعت» را هم نگه می‌دارد:
+//  - شروعِ حرکت ناگهانی نیست و پایانش هم؛ با برداشتنِ انگشت یا ایستادنِ
+//    چرخِ ماوس، فیلم با سرعتِ رو‌به‌کاهش چند لحظه‌ی دیگر ادامه می‌دهد؛
+//  - هر «تقِ» ویل فقط یک ضربه‌ی کوچک به سرعت می‌زند و بینِ تق‌ها فیلم
+//    نمی‌ایستد.
+// عدد بزرگ‌تر = دنباله‌ی طولانی‌تر و سنگین‌تر/سینمایی‌تر (زمان بر حسب ثانیه).
+// عدد کوچک‌تر = واکنشِ سریع‌تر. بازه‌ی منطقی: ۰٫۳ تا ۱٫۰
+const SMOOTH_TIME = 0.6;
+
+// دنبال‌کننده‌ی فنری بحرانی (critically damped). مقدار جدید و سرعتِ جدید را برمی‌گرداند.
+function smoothDamp(current: number, target: number, velocity: number, smoothTime: number, dt: number): [number, number] {
+  const omega = 2 / smoothTime;
+  const x = omega * dt;
+  const e = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+  const change = current - target;
+  const temp = (velocity + omega * change) * dt;
+  const nextVelocity = (velocity - omega * temp) * e;
+  const next = target + (change + temp) * e;
+  return [next, nextVelocity];
+}
+
+const DESKTOP_FRAMES = { count: 99, prefix: "/video/frames/frame_", reach: 36 };
+const MOBILE_FRAMES = { count: 99, prefix: "/video/frames-mobile/frame_", reach: 27 };
 
 // برچسب‌های شیشه‌ای مواد تشکیل‌دهنده برای «فیلم قدیمی» کالیبره شده بودند
 // (همان فریمِ باز/اکسپلود‌شده‌ی همبرگر که هر ماده در ارتفاع مشخصی می‌ایستاد).
@@ -33,8 +57,13 @@ function labelOpacityForProgress(p: number) {
 
 export default function FireStoryShowcase() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const pinnedRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<FrameSequenceHandle>(null);
+  // پیشرفتِ واقعیِ اسکرول (هدف) / پیشرفتِ نمایش‌داده‌شده / سرعتِ آن
+  const targetRef = useRef(0);
+  const shownRef = useRef(0);
+  const velocityRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const wakeRef = useRef<() => void>(() => {});
   const labelRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [showCta, setShowCta] = useState(false);
   const [device, setDevice] = useState<"desktop" | "mobile" | null>(null);
@@ -66,40 +95,82 @@ export default function FireStoryShowcase() {
     };
   }, []);
 
+  // حلقه‌ی دنبال‌کننده. فقط وقتی فیلم هنوز در حال حرکت است اجرا می‌شود و
+  // به‌محض رسیدن به هدف خودش را خاموش می‌کند (روی موبایل باتری نمی‌خورد).
+  useEffect(() => {
+    let last = 0;
+
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
+      last = now;
+
+      const target = targetRef.current;
+      const [next, nextVelocity] = smoothDamp(shownRef.current, target, velocityRef.current, SMOOTH_TIME, dt);
+      shownRef.current = Math.min(1, Math.max(0, next));
+      velocityRef.current = nextVelocity;
+
+      const settled = Math.abs(shownRef.current - target) < 0.00005 && Math.abs(velocityRef.current) < 0.0002;
+      if (settled) {
+        shownRef.current = target;
+        velocityRef.current = 0;
+      }
+
+      playerRef.current?.setProgress(shownRef.current);
+
+      const labelOpacity = String(labelOpacityForProgress(shownRef.current));
+      labelRefs.current.forEach((el) => {
+        if (el) el.style.opacity = labelOpacity;
+      });
+
+      setShowCta(shownRef.current > 0.9);
+
+      rafRef.current = settled ? null : requestAnimationFrame(tick);
+    };
+
+    wakeRef.current = () => {
+      if (rafRef.current !== null) return;
+      last = performance.now();
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      wakeRef.current = () => {};
+    };
+  }, []);
+
   useGsap(() => {
-    if (!sectionRef.current || !pinnedRef.current) return;
+    if (!sectionRef.current) return;
 
     const existing = ScrollTrigger.getById("fire-story");
     existing?.kill();
 
+    // نکته: اینجا دیگر نه pin داریم و نه scrub.
+    //  - pin: قابِ فیلم با CSS «sticky» (کلاس sticky پایین) می‌چسبد. pin در
+    //    GSAP روی موبایل با position:fixed کار می‌کند و وسطِ اسکرولِ لمسی
+    //    (مخصوصاً iOS) لرزش/پرش می‌دهد و می‌تواند حرکتِ باقی‌مانده‌ی انگشت را
+    //    ببُرد؛ sticky را خودِ مرورگر روی GPU انجام می‌دهد و اصلاً نمی‌لرزد.
+    //  - scrub: نرمی حالا با دنبال‌کننده‌ی فنریِ بالا (SmoothDamp) انجام
+    //    می‌شود که سرعت را حفظ می‌کند؛ scrub فقط یک تأخیرِ ساده بود.
+    // طولِ مسیر همان قبلی است (۳۲۰vh منهای یک صفحه)، پس سرعتِ فیلم عوض نشده.
     ScrollTrigger.create({
       id: "fire-story",
       trigger: sectionRef.current,
       start: "top top",
       end: "bottom bottom",
-      // ۱٫۶ ثانیه فاصله بین اسکرول واقعی و فریمی که روی صفحه دیده می‌شد
-      // ایجاد می‌کرد؛ روی موبایل که خودِ لمس اسکرول نرم‌شده (Lenis) روی
-      // آن اعمال نمی‌شود، این تاخیر کاملاً محسوس و «مصنوعی» بود: انگشت
-      // می‌ایستد ولی فیلم چند لحظه‌ی دیگر هم به‌تنهایی ادامه می‌دهد.
-      // عدد کوچک‌تر یعنی فریم تقریباً همزمان با اسکرول عوض می‌شود؛ کمی
-      // (نه صفر) نرمی نگه داشته شده تا بین ۱۰۰ فریمِ مجزا، پرش خام و
-      // دندانه‌دار دیده نشود. برای حسّ حتی خام‌تر/بی‌واسطه‌تر می‌توانید
-      // این را به true تغییر دهید.
-      scrub: 0.4,
-      // بدون این، اولین لحظه‌ی رسیدن به بخش پین‌شده یک تکانِ کوچکِ
-      // یک‌فریمی دارد (رفتار شناخته‌شده‌ی GSAP در پین‌کردن)
-      anticipatePin: 1,
       invalidateOnRefresh: true,
-      pin: pinnedRef.current,
       onUpdate: (self) => {
+        targetRef.current = self.progress;
+        wakeRef.current();
+      },
+      // بعد از لودِ صفحه/تغییرِ اندازه (مثلاً باز کردنِ صفحه وسطِ اسکرول)
+      // فیلم باید یک‌راست روی جای درست بنشیند، نه اینکه از فریمِ اول بدود.
+      onRefresh: (self) => {
+        targetRef.current = self.progress;
+        shownRef.current = self.progress;
+        velocityRef.current = 0;
         playerRef.current?.setProgress(self.progress);
-
-        const opacity = labelOpacityForProgress(self.progress);
-        labelRefs.current.forEach((el) => {
-          if (el) el.style.opacity = String(opacity);
-        });
-
-        setShowCta(self.progress > 0.9);
       },
     });
   }, []);
@@ -116,8 +187,7 @@ export default function FireStoryShowcase() {
     <section ref={sectionRef} className="relative" style={{ height: "320vh" }}>
       {/* ارتفاع 100svh (با h-screen به‌عنوان پشتیبان): روی موبایل ارتفاعِ «قابل‌دیدنِ» صفحه را می‌گیرد، پس دکمه‌ی پایین زیر نوار مرورگر نمی‌رود */}
       <div
-        ref={pinnedRef}
-        className="relative h-screen w-full overflow-hidden bg-[var(--color-ink)]"
+        className="sticky top-0 h-screen w-full overflow-hidden bg-[var(--color-ink)]"
         style={{ height: "100svh" }}
       >
         {/*
@@ -132,6 +202,13 @@ export default function FireStoryShowcase() {
             frameCount={frameSet.count}
             framePrefix={frameSet.prefix}
             fit="cover"
+            onFirstFrameReady={() => {
+              // پلیرِ تازه (اولین بار یا بعد از چرخاندنِ گوشی) از فریمِ اول شروع
+              // می‌کند؛ همان لحظه به جای درستِ اسکرول برسانش.
+              shownRef.current = targetRef.current;
+              velocityRef.current = 0;
+              playerRef.current?.setProgress(targetRef.current);
+            }}
           />
         )}
 

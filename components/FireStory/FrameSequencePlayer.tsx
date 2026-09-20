@@ -3,7 +3,12 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 export interface FrameSequenceHandle {
-  /** فریم را بر اساس پیشرفت ۰ تا ۱ رسم می‌کند */
+  /**
+   * فریم را بر اساس پیشرفت ۰ تا ۱ رسم می‌کند. پیشرفت عدد اعشاری است:
+   * وقتی بین دو فریم قرار بگیرد (مثلاً ۴۲٫۳)، هر دو فریمِ همسایه با
+   * درصدِ متناسب روی هم ترکیب می‌شوند (frame blending) تا حرکتِ کند،
+   * «پله‌پله» دیده نشود.
+   */
   setProgress: (progress: number) => void;
 }
 
@@ -51,15 +56,21 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
   const backdropRef = useRef<HTMLCanvasElement>(null);
   const stepRef = useRef<HTMLCanvasElement | null>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
-  const currentIndexRef = useRef(0);
+  // موقعیتِ فعلی به‌صورت اعشاری (۰ تا frameCount-1)
+  const positionRef = useRef(0);
+  // کلیدِ آخرین چیزی که کشیده شد؛ اگر تغییری نکرده باشد دوباره نمی‌کشیم
+  const lastKeyRef = useRef("");
   const [firstFrameReady, setFirstFrameReady] = useState(false);
   const [aspect, setAspect] = useState(16 / 9);
 
-  const drawCover = (canvas: HTMLCanvasElement, img: HTMLImageElement) => {
+  const drawCover = (canvas: HTMLCanvasElement, img: HTMLImageElement, next?: HTMLImageElement, mix = 0) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    // سقفِ ۲ برای dpr: فریم‌های منبع فقط ۷۲۰/۱۲۸۰ پیکسل‌اند؛ روی گوشی‌های
+    // dpr=۳ کشیدنِ کانواسِ ۳ برابری فقط بارِ اضافه روی پردازنده می‌گذاشت
+    // (و همان چیزی است که اسکرول سریع را روی موبایل «ناصاف» می‌کند).
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const pxW = Math.round(canvas.clientWidth * dpr);
     const pxH = Math.round(canvas.clientHeight * dpr);
     if (pxW === 0 || pxH === 0) return;
@@ -68,15 +79,25 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
       canvas.height = pxH;
     }
 
+    ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, pxW, pxH);
 
-    const scale = Math.max(pxW / img.naturalWidth, pxH / img.naturalHeight);
-    const drawW = img.naturalWidth * scale;
-    const drawH = img.naturalHeight * scale;
-    ctx.drawImage(img, (pxW - drawW) / 2, (pxH - drawH) / 2, drawW, drawH);
+    const paint = (im: HTMLImageElement) => {
+      const scale = Math.max(pxW / im.naturalWidth, pxH / im.naturalHeight);
+      const drawW = im.naturalWidth * scale;
+      const drawH = im.naturalHeight * scale;
+      ctx.drawImage(im, (pxW - drawW) / 2, (pxH - drawH) / 2, drawW, drawH);
+    };
+
+    paint(img);
+    if (next && mix > 0) {
+      ctx.globalAlpha = mix;
+      paint(next);
+      ctx.globalAlpha = 1;
+    }
   };
 
-  const drawContain = (canvas: HTMLCanvasElement, img: HTMLImageElement) => {
+  const drawContain = (canvas: HTMLCanvasElement, img: HTMLImageElement, next?: HTMLImageElement, mix = 0) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -90,7 +111,13 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
       canvas.width = pxW;
       canvas.height = pxH;
     }
+    ctx.globalAlpha = 1;
     ctx.drawImage(img, 0, 0, pxW, pxH);
+    if (next && mix > 0) {
+      ctx.globalAlpha = mix;
+      ctx.drawImage(next, 0, 0, pxW, pxH);
+      ctx.globalAlpha = 1;
+    }
 
     // پس‌زمینه: لبه‌ی بالا و پایین فریم را به دو ردیف کوچک می‌کنیم (دو مرحله‌ای
     // تا نویز/دندانه ایجاد نشود). عمداً از ctx.filter استفاده نشده چون در
@@ -136,20 +163,42 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
     return undefined;
   };
 
-  const drawFrame = (index: number) => {
+  // position اعشاری است: بخشِ صحیحش فریمِ پایه و بخشِ اعشاریش درصدِ
+  // ترکیب با فریمِ بعدی. حالتِ «تقریباً دقیقاً روی یک فریم» را گرد می‌کنیم
+  // تا برای هر تغییرِ ناچیز دوباره چیزی کشیده نشود.
+  const drawFrame = (position: number, force = false) => {
     const canvas = canvasRef.current;
-    const img = resolveImage(index);
-    if (!canvas || !img) return;
+    if (!canvas) return;
 
-    if (fit === "contain-blur") drawContain(canvas, img);
-    else drawCover(canvas, img);
+    let base = Math.floor(position);
+    let mix = position - base;
+    if (mix < 0.03) mix = 0;
+    else if (mix > 0.97) {
+      base += 1;
+      mix = 0;
+    }
+    base = Math.min(frameCount - 1, Math.max(0, base));
+
+    const key = `${base}:${Math.round(mix * 32)}`;
+    if (!force && key === lastKeyRef.current) return;
+
+    const img = resolveImage(base);
+    if (!img) return;
+
+    const nextDirect = mix > 0 ? imagesRef.current[base + 1] : undefined;
+    const next = isReady(nextDirect) ? nextDirect : undefined;
+
+    lastKeyRef.current = key;
+    if (fit === "contain-blur") drawContain(canvas, img, next, next ? mix : 0);
+    else drawCover(canvas, img, next, next ? mix : 0);
   };
 
   useImperativeHandle(ref, () => ({
     setProgress: (progress: number) => {
-      const index = Math.min(frameCount - 1, Math.max(0, Math.round(progress * (frameCount - 1))));
-      currentIndexRef.current = index;
-      drawFrame(index);
+      const clamped = Math.min(1, Math.max(0, progress));
+      const position = clamped * (frameCount - 1);
+      positionRef.current = position;
+      drawFrame(position);
     },
   }));
 
@@ -170,13 +219,13 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
         }
         // هر فریمی که برسد ممکن است دقیقاً همانی باشد که الان لازم داریم
         // (یا از فریمِ جایگزینِ فعلی به هدف نزدیک‌تر باشد)، پس دوباره رسم کن
-        drawFrame(currentIndexRef.current);
+        drawFrame(positionRef.current, true);
       };
       images.push(img);
     }
     imagesRef.current = images;
 
-    const redraw = () => drawFrame(currentIndexRef.current);
+    const redraw = () => drawFrame(positionRef.current, true);
     const ro = new ResizeObserver(redraw);
     if (canvasRef.current) ro.observe(canvasRef.current);
     window.addEventListener("orientationchange", redraw);
