@@ -10,7 +10,9 @@ import StructuredData from "@/components/StructuredData";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
+import AuthModal from "@/components/AuthModal";
 import { CartProvider } from "@/context/CartContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://gorg-restaurant.ir"),
@@ -37,14 +39,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SmoothScroll />
         <ScrollProgress />
         <SkipToContent />
-        <CartProvider>
-          <Header />
-          <CartDrawer />
-          <main id="main-content" className="flex-1">
-            {children}
-          </main>
-          <Footer />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Header />
+            <CartDrawer />
+            <AuthModal />
+            <main id="main-content" className="flex-1">
+              {children}
+            </main>
+            <Footer />
+          </CartProvider>
+        </AuthProvider>
         <WhatsAppButton />
         <BackToTop />
       </body>

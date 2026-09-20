@@ -247,3 +247,46 @@ html.lenis body {
 .fade-up {
   animation: fadeUp 0.7s ease both;
 }
+
+/* ═══════════════ پنجره‌ی ورود با موبایل ═══════════════ */
+@keyframes auth-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes auth-rise {
+  from { opacity: 0; transform: translateY(28px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes auth-step {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes auth-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+@keyframes auth-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes auth-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes auth-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.auth-fade { animation: auth-fade 0.25s ease-out both; }
+.auth-rise { animation: auth-rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.auth-step { animation: auth-step 0.35s ease-out both; }
+.auth-shake { animation: auth-shake 0.45s ease-in-out; }
+.auth-pop { animation: auth-pop 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.auth-draw { animation: auth-draw 0.5s 0.3s ease-out forwards; }
+.auth-glow { animation: auth-glow 3.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .auth-fade, .auth-rise, .auth-step, .auth-shake, .auth-pop, .auth-glow { animation: none; }
+  .auth-draw { animation: none; stroke-dashoffset: 0 !important; }
+}

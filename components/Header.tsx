@@ -3,8 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { maskMobile } from "@/lib/phone";
 
 const NAV_ITEMS = [
   { href: "/", label: "خانه" },
@@ -15,11 +17,42 @@ const NAV_ITEMS = [
   { href: "/contact", label: "تماس" },
 ];
 
+function UserIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.6" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4.5 20c.6-3.7 3.6-5.6 7.5-5.6s6.9 1.9 7.5 5.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function Header() {
   const pathname = usePathname();
   const { count, openCart } = useCart();
+  const { phone, ready, openLogin, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
+
+  // بستن منوی حساب با کلیک بیرون از آن یا Escape
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAccountOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown, { passive: true });
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [accountOpen]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -93,6 +126,67 @@ export default function Header() {
               </span>
             )}
           </button>
+
+          {/* ورود / حساب کاربری (با شماره موبایل و پیامک) */}
+          {ready && !phone && (
+            <button
+              onClick={openLogin}
+              aria-label="ورود به حساب کاربری"
+              className="h-10 w-10 sm:w-auto sm:px-4 rounded-full border border-white/12 flex items-center justify-center gap-2 hover:border-[var(--color-ember)] transition-colors"
+            >
+              <UserIcon />
+              <span className="hidden sm:inline text-sm font-bold">ورود</span>
+            </button>
+          )}
+          {ready && phone && (
+            <div ref={accountRef} className="relative">
+              <button
+                onClick={() => setAccountOpen((v) => !v)}
+                aria-label="حساب کاربری"
+                aria-haspopup="menu"
+                aria-expanded={accountOpen}
+                className="relative h-10 w-10 sm:w-auto sm:px-4 rounded-full border border-[var(--color-ember)]/60 flex items-center justify-center gap-2 hover:border-[var(--color-ember)] transition-colors"
+              >
+                <UserIcon />
+                <span dir="ltr" className="hidden sm:inline text-sm">
+                  {maskMobile(phone)}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[var(--color-ink)]"
+                />
+              </button>
+              {accountOpen && (
+                <div
+                  role="menu"
+                  className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-[var(--color-charcoal)] border border-white/10 p-3 shadow-2xl"
+                >
+                  <p className="text-xs text-[var(--color-ash)]">وارد شده با شماره</p>
+                  <p dir="ltr" className="text-sm font-bold mt-1 text-right">
+                    {phone}
+                  </p>
+                  <Link
+                    href="/track"
+                    role="menuitem"
+                    onClick={() => setAccountOpen(false)}
+                    className="block mt-3 py-2 text-sm border-t border-white/10 hover:text-[var(--color-ember-light)]"
+                  >
+                    پیگیری سفارش
+                  </Link>
+                  <button
+                    role="menuitem"
+                    onClick={async () => {
+                      setAccountOpen(false);
+                      await logout();
+                    }}
+                    className="block w-full text-right py-2 text-sm border-t border-white/10 text-red-300 hover:text-red-200"
+                  >
+                    خروج از حساب
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             onClick={() => setMenuOpen((v) => !v)}
