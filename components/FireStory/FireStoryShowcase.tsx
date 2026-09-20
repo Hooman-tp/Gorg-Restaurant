@@ -11,11 +11,6 @@ import FrameSequencePlayer, { FrameSequenceHandle } from "./FrameSequencePlayer"
 
 const MOBILE_BREAKPOINT = 768;
 
-// روی موبایل کل فریمِ فیلم هم‌عرض صفحه نشان داده می‌شود (بدون برش).
-// ۱ = دقیقاً هم‌عرض صفحه. اگر فیلم را روی موبایل کمی بزرگ‌تر می‌خواهید
-// (مثلاً ۱٫۲۵) فقط همین عدد را عوض کنید؛ بیشتر از این، برش کناره‌ها بیشتر می‌شود.
-const MOBILE_VIDEO_ZOOM = 1;
-
 const DESKTOP_FRAMES = { count: 100, prefix: "/video/frames/frame_", reach: 36 };
 const MOBILE_FRAMES = { count: 100, prefix: "/video/frames-mobile/frame_", reach: 27 };
 
@@ -48,15 +43,27 @@ export default function FireStoryShowcase() {
   const heroItem = getItemById("bg-1");
 
   // تشخیص دستگاه فقط سمت کلاینت انجام می‌شود (window در SSR وجود ندارد).
-  // این همگام‌سازی با محیط مرورگر است، نه state مشتق‌شده، پس اجرای
-  // setState یک‌باره در mount ضروری است.
+  // این همگام‌سازی با محیط مرورگر است، نه state مشتق‌شده.
+  // فیلم موبایل عمودی (۹:۱۶) است و فیلم دسکتاپ افقی؛ پس صفحه‌ی عمودی
+  // (موبایل یا تبلتِ ایستاده) فیلم موبایل می‌گیرد و صفحه‌ی افقی فیلم دسکتاپ.
+  // با چرخاندن گوشی هم فیلم مناسبِ جهتِ جدید انتخاب می‌شود.
   useEffect(() => {
-    // صفحه‌ی عمودی (موبایل یا تبلتِ ایستاده) هم مثل موبایل حساب می‌شود، چون
-    // فریم افقیِ فیلم روی آن با «cover» بی‌اندازه زوم می‌شد.
-    const isNarrow = window.innerWidth < MOBILE_BREAKPOINT;
-    const isPortrait = window.innerHeight > window.innerWidth;
+    const detect = (): "desktop" | "mobile" =>
+      window.innerWidth < MOBILE_BREAKPOINT || window.innerHeight > window.innerWidth ? "mobile" : "desktop";
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDevice(isNarrow || isPortrait ? "mobile" : "desktop");
+    setDevice(detect());
+
+    const onResize = () => setDevice((prev) => {
+      const next = detect();
+      return next === prev ? prev : next;
+    });
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
   }, []);
 
   useGsap(() => {
@@ -96,19 +103,17 @@ export default function FireStoryShowcase() {
         style={{ height: "100svh" }}
       >
         {/*
-          فیلم افقی (۱۶:۹) است.
-          - دسکتاپ (صفحه‌ی افقی): fit="cover" تقریباً کل صفحه را پر می‌کند.
-          - موبایل (صفحه‌ی عمودی): "cover" فقط یک نوار باریک وسط فیلم را نشان
-            می‌داد و خیلی زوم می‌شد؛ پس کل فریم هم‌عرض صفحه نشان داده می‌شود و
-            بالا و پایین با نسخه‌ی تارِ همان فریم پر می‌شود.
+          موبایل: فیلمِ عمودی (۹:۱۶) با fit="cover" کل صفحه‌ی گوشی را پر می‌کند
+          (روی گوشی‌های بلند فقط چند درصد از کناره‌ها بریده می‌شود).
+          دسکتاپ: فیلم افقیِ قبلی، بدون تغییر.
         */}
         {device && (
           <FrameSequencePlayer
+            key={device}
             ref={playerRef}
             frameCount={frameSet.count}
             framePrefix={frameSet.prefix}
-            fit={device === "mobile" ? "contain-blur" : "cover"}
-            zoom={MOBILE_VIDEO_ZOOM}
+            fit="cover"
           />
         )}
 
