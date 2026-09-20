@@ -12,42 +12,56 @@ interface Props {
   framePrefix: string; // مثلاً "/video/frames/frame_" یا "/video/frames-mobile/frame_"
   onFirstFrameReady?: () => void;
   /**
-   * "cover": فریم را با برش، به‌اندازه‌ی کل کانواس می‌کِشد (زمانی خوب که
-   * نسبت‌ابعاد فریم با نسبت‌ابعاد کانواس نزدیک باشد، مثل موبایل).
-   * "contain-blur": کل فریم را بدون هیچ برشی، وسط کانواس جا می‌دهد و
-   * پشتش را با نسخه‌ی بزرگ‌شده و بلورِ همان فریم پر می‌کند؛ برای دسکتاپ
-   * که فریمِ عمودیِ فیلم با کادر افقیِ هیرو هم‌نسبت نیست، تا چیزی از
-   * تصویر اصلی حذف نشود.
+   * "cover": فریم را با برش، به‌اندازه‌ی کل کانواس می‌کِشد (برای دسکتاپ که
+   * صفحه افقی است و فریم ۱۶:۹ تقریباً کل صفحه را پر می‌کند).
+   *
+   * "contain-blur": کل فریم را بدون هیچ برشی و هم‌عرض صفحه نشان می‌دهد و
+   * فضای خالی بالا و پایین را با نسخه‌ی تارِ همان فریم پر می‌کند؛ برای
+   * موبایل (صفحه‌ی عمودی) که با "cover" فقط یک نوار باریک وسط فیلم دیده
+   * می‌شد و تصویر خیلی زوم بود.
    */
   fit?: "cover" | "contain-blur";
+  /**
+   * فقط برای "contain-blur". ۱ یعنی کل فریم دقیقاً هم‌عرض صفحه. اگر فیلم را
+   * روی موبایل کمی بزرگ‌تر می‌خواهید، عددی مثل ۱٫۲ بدهید (لبه‌های چپ و
+   * راست کمی بریده می‌شود).
+   */
+  zoom?: number;
 }
+
+// بوم پس‌زمینه فقط ۲ ردیف پیکسل است: ردیف اول = رنگ‌های لبه‌ی بالای فریم،
+// ردیف دوم = رنگ‌های لبه‌ی پایین. مرورگر موقع کشیدنش روی کل صفحه، آن را
+// نرم می‌کند؛ نتیجه این است که رنگ‌های لبه‌ی فیلم بی‌درز به بالا و پایین
+// صفحه ادامه پیدا می‌کند (بدون هیچ خواندنِ پیکسل یا فیلترِ سنگین).
+const BACKDROP_W = 12;
+const BACKDROP_H = 2;
+
+// محو شدن لبه‌ی بالا و پایین فریمِ وسط، تا خطِ سخت بین فیلم و پس‌زمینه دیده نشود
+const FRAME_EDGE_MASK = "linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%)";
 
 /**
  * پخش‌کننده‌ی «دنباله‌ی فریم» روی canvas (به‌جای <video currentTime=...>
  * که با اسکرول سریع، از موتور دیکود مرورگر عبور می‌کند و لگ می‌زند).
  */
 const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function FrameSequencePlayer(
-  { frameCount, framePrefix, onFirstFrameReady, fit = "cover" },
+  { frameCount, framePrefix, onFirstFrameReady, fit = "cover", zoom = 1 },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const backdropRef = useRef<HTMLCanvasElement>(null);
+  const stepRef = useRef<HTMLCanvasElement | null>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const currentIndexRef = useRef(0);
   const [firstFrameReady, setFirstFrameReady] = useState(false);
+  const [aspect, setAspect] = useState(16 / 9);
 
-  const drawFrame = (index: number) => {
-    const canvas = canvasRef.current;
-    const img = imagesRef.current[index];
-    if (!canvas || !img || !img.complete || img.naturalWidth === 0) return;
-
+  const drawCover = (canvas: HTMLCanvasElement, img: HTMLImageElement) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const cssW = canvas.clientWidth;
-    const cssH = canvas.clientHeight;
-    const pxW = Math.round(cssW * dpr);
-    const pxH = Math.round(cssH * dpr);
+    const pxW = Math.round(canvas.clientWidth * dpr);
+    const pxH = Math.round(canvas.clientHeight * dpr);
     if (pxW === 0 || pxH === 0) return;
     if (canvas.width !== pxW || canvas.height !== pxH) {
       canvas.width = pxW;
@@ -56,31 +70,57 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
 
     ctx.clearRect(0, 0, pxW, pxH);
 
-    if (fit === "contain-blur") {
-      // لایه‌ی پس‌زمینه: نسخه‌ی بزرگ‌شده و بلورِ فریم، تمام کانواس را پر می‌کند
-      const coverScale = Math.max(pxW / img.naturalWidth, pxH / img.naturalHeight);
-      const coverW = img.naturalWidth * coverScale;
-      const coverH = img.naturalHeight * coverScale;
-      ctx.save();
-      ctx.filter = "blur(60px) brightness(0.5)";
-      ctx.drawImage(img, (pxW - coverW) / 2, (pxH - coverH) / 2, coverW, coverH);
-      ctx.restore();
-
-      // لایه‌ی اصلی: کل فریم بدون برش، وسط‌چین
-      const containScale = Math.min(pxW / img.naturalWidth, pxH / img.naturalHeight);
-      const drawW = img.naturalWidth * containScale;
-      const drawH = img.naturalHeight * containScale;
-      ctx.drawImage(img, (pxW - drawW) / 2, (pxH - drawH) / 2, drawW, drawH);
-      return;
-    }
-
     const scale = Math.max(pxW / img.naturalWidth, pxH / img.naturalHeight);
     const drawW = img.naturalWidth * scale;
     const drawH = img.naturalHeight * scale;
-    const dx = (pxW - drawW) / 2;
-    const dy = (pxH - drawH) / 2;
+    ctx.drawImage(img, (pxW - drawW) / 2, (pxH - drawH) / 2, drawW, drawH);
+  };
 
-    ctx.drawImage(img, dx, dy, drawW, drawH);
+  const drawContain = (canvas: HTMLCanvasElement, img: HTMLImageElement) => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // بوم فریم هم‌نسبت با خود فیلم است (CSS آن را هم‌عرض صفحه می‌کند)،
+    // پس کافی است کل تصویر را بدون هیچ برشی در آن بکشیم.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const pxW = Math.round(canvas.clientWidth * dpr);
+    if (pxW === 0) return;
+    const pxH = Math.round((pxW * img.naturalHeight) / img.naturalWidth);
+    if (canvas.width !== pxW || canvas.height !== pxH) {
+      canvas.width = pxW;
+      canvas.height = pxH;
+    }
+    ctx.drawImage(img, 0, 0, pxW, pxH);
+
+    // پس‌زمینه: لبه‌ی بالا و پایین فریم را به دو ردیف کوچک می‌کنیم (دو مرحله‌ای
+    // تا نویز/دندانه ایجاد نشود). عمداً از ctx.filter استفاده نشده چون در
+    // Safari/iOS پشتیبانی نمی‌شود.
+    const backdrop = backdropRef.current;
+    if (!backdrop) return;
+    if (!stepRef.current) {
+      const step = document.createElement("canvas");
+      step.width = 192;
+      step.height = 108;
+      stepRef.current = step;
+    }
+    const stepCtx = stepRef.current.getContext("2d");
+    const bctx = backdrop.getContext("2d");
+    if (!stepCtx || !bctx) return;
+
+    stepCtx.imageSmoothingQuality = "high";
+    stepCtx.drawImage(img, 0, 0, 192, 108);
+    bctx.imageSmoothingQuality = "high";
+    bctx.drawImage(stepRef.current, 0, 0, 192, 10, 0, 0, BACKDROP_W, 1); // لبه‌ی بالا
+    bctx.drawImage(stepRef.current, 0, 98, 192, 10, 0, 1, BACKDROP_W, 1); // لبه‌ی پایین
+  };
+
+  const drawFrame = (index: number) => {
+    const canvas = canvasRef.current;
+    const img = imagesRef.current[index];
+    if (!canvas || !img || !img.complete || img.naturalWidth === 0) return;
+
+    if (fit === "contain-blur") drawContain(canvas, img);
+    else drawCover(canvas, img);
   };
 
   useImperativeHandle(ref, () => ({
@@ -100,6 +140,7 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
       img.src = `${framePrefix}${String(i + 1).padStart(3, "0")}.jpg`;
       img.onload = () => {
         if (i === 0 && !cancelled) {
+          setAspect(img.naturalWidth / img.naturalHeight);
           drawFrame(0);
           setFirstFrameReady(true);
           onFirstFrameReady?.();
@@ -120,15 +161,47 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
       window.removeEventListener("orientationchange", redraw);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frameCount, framePrefix]);
+  }, [frameCount, framePrefix, fit]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ opacity: firstFrameReady ? 1 : 0, transition: "opacity 0.3s" }}
-    />
-  );
+  const fade = { opacity: firstFrameReady ? 1 : 0, transition: "opacity 0.3s" };
+
+  if (fit === "contain-blur") {
+    return (
+      <>
+        <canvas
+          ref={backdropRef}
+          width={BACKDROP_W}
+          height={BACKDROP_H}
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full"
+          style={fade}
+        />
+        {/* هرچه از لبه‌ی فیلم دورتر شویم، پس‌زمینه تیره‌تر و در رنگ سایت حل می‌شود */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, var(--color-ink) 0%, rgba(13,4,3,0.7) 20%, rgba(13,4,3,0.25) 38%, rgba(13,4,3,0.25) 62%, rgba(13,4,3,0.7) 80%, var(--color-ink) 100%)",
+          }}
+        />
+        <canvas
+          ref={canvasRef}
+          className="absolute top-1/2 left-1/2"
+          style={{
+            ...fade,
+            width: `${zoom * 100}%`,
+            aspectRatio: String(aspect),
+            transform: "translate(-50%, -50%)",
+            maskImage: FRAME_EDGE_MASK,
+            WebkitMaskImage: FRAME_EDGE_MASK,
+          }}
+        />
+      </>
+    );
+  }
+
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={fade} />;
 });
 
 export default FrameSequencePlayer;

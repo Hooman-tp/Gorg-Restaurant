@@ -11,6 +11,11 @@ import FrameSequencePlayer, { FrameSequenceHandle } from "./FrameSequencePlayer"
 
 const MOBILE_BREAKPOINT = 768;
 
+// روی موبایل کل فریمِ فیلم هم‌عرض صفحه نشان داده می‌شود (بدون برش).
+// ۱ = دقیقاً هم‌عرض صفحه. اگر فیلم را روی موبایل کمی بزرگ‌تر می‌خواهید
+// (مثلاً ۱٫۲۵) فقط همین عدد را عوض کنید؛ بیشتر از این، برش کناره‌ها بیشتر می‌شود.
+const MOBILE_VIDEO_ZOOM = 1;
+
 const DESKTOP_FRAMES = { count: 100, prefix: "/video/frames/frame_", reach: 36 };
 const MOBILE_FRAMES = { count: 100, prefix: "/video/frames-mobile/frame_", reach: 27 };
 
@@ -46,8 +51,12 @@ export default function FireStoryShowcase() {
   // این همگام‌سازی با محیط مرورگر است، نه state مشتق‌شده، پس اجرای
   // setState یک‌باره در mount ضروری است.
   useEffect(() => {
+    // صفحه‌ی عمودی (موبایل یا تبلتِ ایستاده) هم مثل موبایل حساب می‌شود، چون
+    // فریم افقیِ فیلم روی آن با «cover» بی‌اندازه زوم می‌شد.
+    const isNarrow = window.innerWidth < MOBILE_BREAKPOINT;
+    const isPortrait = window.innerHeight > window.innerWidth;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDevice(window.innerWidth < MOBILE_BREAKPOINT ? "mobile" : "desktop");
+    setDevice(isNarrow || isPortrait ? "mobile" : "desktop");
   }, []);
 
   useGsap(() => {
@@ -80,14 +89,27 @@ export default function FireStoryShowcase() {
 
   return (
     <section ref={sectionRef} className="relative" style={{ height: "520vh" }}>
-      <div ref={pinnedRef} className="relative h-screen w-full overflow-hidden bg-[var(--color-ink)]">
+      {/* ارتفاع 100svh (با h-screen به‌عنوان پشتیبان): روی موبایل ارتفاعِ «قابل‌دیدنِ» صفحه را می‌گیرد، پس دکمه‌ی پایین زیر نوار مرورگر نمی‌رود */}
+      <div
+        ref={pinnedRef}
+        className="relative h-screen w-full overflow-hidden bg-[var(--color-ink)]"
+        style={{ height: "100svh" }}
+      >
         {/*
-          فیلم فعلی افقی (۱۶:۹) است، هم برای هیرو دسکتاپ مناسب است هم با
-          برش مرکزی روی صفحه‌ی عمودی موبایل تمیز جا می‌شود؛ پس هر دو از
-          fit="cover" (پیش‌فرض) استفاده می‌کنند و برشی گم نمی‌شود.
+          فیلم افقی (۱۶:۹) است.
+          - دسکتاپ (صفحه‌ی افقی): fit="cover" تقریباً کل صفحه را پر می‌کند.
+          - موبایل (صفحه‌ی عمودی): "cover" فقط یک نوار باریک وسط فیلم را نشان
+            می‌داد و خیلی زوم می‌شد؛ پس کل فریم هم‌عرض صفحه نشان داده می‌شود و
+            بالا و پایین با نسخه‌ی تارِ همان فریم پر می‌شود.
         */}
         {device && (
-          <FrameSequencePlayer ref={playerRef} frameCount={frameSet.count} framePrefix={frameSet.prefix} />
+          <FrameSequencePlayer
+            ref={playerRef}
+            frameCount={frameSet.count}
+            framePrefix={frameSet.prefix}
+            fit={device === "mobile" ? "contain-blur" : "cover"}
+            zoom={MOBILE_VIDEO_ZOOM}
+          />
         )}
 
         {/*

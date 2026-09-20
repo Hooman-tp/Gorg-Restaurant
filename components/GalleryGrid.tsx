@@ -65,7 +65,7 @@ export default function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
         >
           {/* تصویر پایین‌تر از دکمه‌های ناوبری در DOM قرار می‌گیرد تا هیچ‌وقت
               کلیک روی دکمه‌ها را نپوشاند (باگ قبلی دقیقاً همین بود) */}
-          <div className="relative max-w-4xl w-full aspect-[4/3]" onClick={(e) => e.stopPropagation()}>
+          <div className="relative max-w-4xl w-full h-[82vh]" style={{ height: "82svh" }} onClick={(e) => e.stopPropagation()}>
             <Image
               src={photos[openIndex].src}
               alt={photos[openIndex].alt}

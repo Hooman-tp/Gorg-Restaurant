@@ -1,24 +1,11 @@
 import type { Metadata } from "next";
-import { spaceImages } from "@/lib/images";
-import { menuItems } from "@/lib/menuData";
+import { galleryPhotos } from "@/lib/gallery";
 import GalleryGrid from "@/components/GalleryGrid";
 
 export const metadata: Metadata = {
   title: "گالری",
-  description: "نمایی از فضا و غذاهای رستوران گرگ.",
+  description: "نمایی از غذاها و فضای رستوران گرگ.",
 };
-
-// عکس غذاها از خود منو می‌آید (نوشیدنی‌ها در گالری نیستند)
-const foodPhotos = menuItems
-  .filter((item) => item.category !== "drinks" && item.image)
-  .map((item) => ({ src: item.image as string, alt: item.name }));
-
-const photos = [
-  { src: spaceImages.interior1, alt: "فضای داخلی رستوران گرگ", width: 500, height: 650 },
-  ...foodPhotos.slice(0, 7),
-  { src: spaceImages.interior2, alt: "فضای نشیمن رستوران گرگ", width: 500, height: 400 },
-  ...foodPhotos.slice(7),
-];
 
 export default function GalleryPage() {
   return (
@@ -29,7 +16,7 @@ export default function GalleryPage() {
         نگاهی به فضا و غذاهای رستوران؛ برای دیدن نسخه‌ی بزرگ، روی هر تصویر
         کلیک کنید.
       </p>
-      <GalleryGrid photos={photos} />
+      <GalleryGrid photos={galleryPhotos} />
     </div>
   );
 }

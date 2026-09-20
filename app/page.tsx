@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { categories, getItemById, getSignatureItems, menuItems } from "@/lib/menuData";
-import { spaceImages } from "@/lib/images";
+import { categories, getSignatureItems, menuItems } from "@/lib/menuData";
+import { galleryPhotos } from "@/lib/gallery";
 import DishCard from "@/components/DishCard";
 import FireStoryShowcase from "@/components/FireStory/FireStoryShowcase";
 import InstallAppSection from "@/components/InstallAppSection";
@@ -15,17 +15,8 @@ const CATEGORY_ICONS: Record<string, string> = {
   drinks: "🥤",
 };
 
-// عکس‌های تیزر گالری: دو عکس فضا + چند عکس غذا از خود منو
-const teaserFood = ["bg-1", "st-4", "br-5", "na-2"]
-  .map((id) => getItemById(id))
-  .filter((item): item is NonNullable<typeof item> => Boolean(item && item.image))
-  .map((item) => ({ src: item.image as string, alt: item.name }));
-
-const GALLERY_TEASER = [
-  { src: spaceImages.interior1, alt: "فضای رستوران گرگ" },
-  ...teaserFood,
-  { src: spaceImages.interior2, alt: "فضای رستوران گرگ" },
-];
+// تیزر گالری: ۶ عکسِ اولِ گالری (از lib/gallery.ts)
+const GALLERY_TEASER = galleryPhotos.slice(0, 6);
 
 export default function HomePage() {
   const signatureDishes = getSignatureItems().slice(0, 7);
@@ -162,9 +153,15 @@ export default function HomePage() {
             <Link
               href="/gallery"
               key={i}
-              className="relative aspect-square rounded-xl overflow-hidden gorg-card"
+              className="relative aspect-[4/5] rounded-xl overflow-hidden gorg-card"
             >
-              <Image src={photo.src} alt={photo.alt} fill sizes="200px" className="object-cover" />
+              <Image
+                src={photo.src}
+                alt={photo.alt}
+                fill
+                sizes="(max-width: 768px) 33vw, 190px"
+                className="object-cover"
+              />
             </Link>
           ))}
         </div>
