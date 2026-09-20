@@ -52,6 +52,7 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
   const stepRef = useRef<HTMLCanvasElement | null>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const currentIndexRef = useRef(0);
+  const lastDrawnRef = useRef(-1); // آخرین فریمی که واقعاً روی بوم کشیده شده
   const [firstFrameReady, setFirstFrameReady] = useState(false);
   const [aspect, setAspect] = useState(16 / 9);
 
@@ -59,7 +60,9 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    // سقف ۲: فریم‌های فیلم بیشتر از این جزئیات ندارند و روی گوشی‌های ۳x
+    // رسم هر فریم بی‌دلیل سنگین می‌شد (اسکرول را می‌پراند).
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const pxW = Math.round(canvas.clientWidth * dpr);
     const pxH = Math.round(canvas.clientHeight * dpr);
     if (pxW === 0 || pxH === 0) return;
@@ -118,15 +121,20 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
     const canvas = canvasRef.current;
     const img = imagesRef.current[index];
     if (!canvas || !img || !img.complete || img.naturalWidth === 0) return;
+    if (canvas.clientWidth === 0 || canvas.clientHeight === 0) return;
 
     if (fit === "contain-blur") drawContain(canvas, img);
     else drawCover(canvas, img);
+    lastDrawnRef.current = index;
   };
 
   useImperativeHandle(ref, () => ({
     setProgress: (progress: number) => {
       const index = Math.min(frameCount - 1, Math.max(0, Math.round(progress * (frameCount - 1))));
       currentIndexRef.current = index;
+      // اسکرول نرم ده‌ها بار در ثانیه صدا می‌زند ولی فریم خیلی کمتر عوض می‌شود؛
+      // اگر همان فریمِ قبلی است دوباره نکشیم.
+      if (index === lastDrawnRef.current) return;
       drawFrame(index);
     },
   }));
@@ -134,6 +142,7 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
   useEffect(() => {
     let cancelled = false;
     const images: HTMLImageElement[] = [];
+    lastDrawnRef.current = -1;
 
     for (let i = 0; i < frameCount; i++) {
       const img = new Image();
