@@ -35,8 +35,8 @@ function smoothDamp(current: number, target: number, velocity: number, smoothTim
   return [next, nextVelocity];
 }
 
-const DESKTOP_FRAMES = { count: 99, prefix: "/video/frames/frame_", reach: 36 };
-const MOBILE_FRAMES = { count: 99, prefix: "/video/frames-mobile/frame_", reach: 27 };
+const DESKTOP_FRAMES = { count: 300, prefix: "/video/frames/frame_", reach: 36 };
+const MOBILE_FRAMES = { count: 300, prefix: "/video/frames-mobile/frame_", reach: 27 };
 
 // برچسب‌های شیشه‌ای مواد تشکیل‌دهنده برای «فیلم قدیمی» کالیبره شده بودند
 // (همان فریمِ باز/اکسپلود‌شده‌ی همبرگر که هر ماده در ارتفاع مشخصی می‌ایستاد).

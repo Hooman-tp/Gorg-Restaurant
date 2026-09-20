@@ -2,6 +2,12 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
+// ترکیبِ دو فریمِ همسایه (frame blending) حرکتِ کند را نرم می‌کند، ولی وقتی
+// بین دو فریم تغییرِ زیادی باشد (کاهوی در حال افتادن، دود) «تصویر دوتایی /
+// روح» می‌سازد. پیش‌فرض خاموش است. فقط اگر فیلمتان فریم‌های بسیار نزدیک به
+// هم دارد (مثلاً ۳۰۰+ فریم) روشنش کنید.
+const BLEND_FRAMES = false;
+
 export interface FrameSequenceHandle {
   /**
    * فریم را بر اساس پیشرفت ۰ تا ۱ رسم می‌کند. پیشرفت عدد اعشاری است:
@@ -171,8 +177,9 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
     if (!canvas) return;
 
     let base = Math.floor(position);
-    let mix = position - base;
-    if (mix < 0.03) mix = 0;
+    let mix = BLEND_FRAMES ? position - base : 0;
+    if (!BLEND_FRAMES) base = Math.round(position);
+    else if (mix < 0.03) mix = 0;
     else if (mix > 0.97) {
       base += 1;
       mix = 0;
@@ -204,26 +211,60 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
 
   useEffect(() => {
     let cancelled = false;
-    const images: HTMLImageElement[] = [];
-
-    for (let i = 0; i < frameCount; i++) {
-      const img = new Image();
-      img.decoding = "async";
-      img.src = `${framePrefix}${String(i + 1).padStart(3, "0")}.jpg`;
-      img.onload = () => {
-        if (cancelled) return;
-        if (i === 0) {
-          setAspect(img.naturalWidth / img.naturalHeight);
-          setFirstFrameReady(true);
-          onFirstFrameReady?.();
-        }
-        // هر فریمی که برسد ممکن است دقیقاً همانی باشد که الان لازم داریم
-        // (یا از فریمِ جایگزینِ فعلی به هدف نزدیک‌تر باشد)، پس دوباره رسم کن
-        drawFrame(positionRef.current, true);
-      };
-      images.push(img);
-    }
+    const images: HTMLImageElement[] = Array.from({ length: frameCount }, () => new Image());
     imagesRef.current = images;
+
+    // با ۳۰۰ فریم، درخواستِ همه‌ی فریم‌ها با هم (به‌ترتیب ۱ تا ۳۰۰) شبکه را
+    // خفه می‌کرد و روی موبایل/LTE اسکرولِ اول فقط فریم‌های ابتدایی را می‌دید.
+    // حالا «درشت به ریز» بارگذاری می‌شود: اول فریمِ اول و آخر، بعد هر ۳۲تا،
+    // بعد هر ۱۶تا، ... تا همه. پس از همان ثانیه‌های اول، کل فیلم (با فریمِ
+    // نزدیک) قابل‌اسکرول است و بعد فریم‌ها ریزتر می‌شوند.
+    const order: number[] = [];
+    const seen = new Set<number>();
+    const add = (i: number) => {
+      if (i >= 0 && i < frameCount && !seen.has(i)) {
+        seen.add(i);
+        order.push(i);
+      }
+    };
+    add(0);
+    add(frameCount - 1);
+    for (const stride of [32, 16, 8, 4, 2, 1]) {
+      for (let i = 0; i < frameCount; i += stride) add(i);
+    }
+
+    const MAX_PARALLEL = 6;
+    let cursor = 0;
+    let active = 0;
+
+    const pump = () => {
+      while (!cancelled && active < MAX_PARALLEL && cursor < order.length) {
+        const i = order[cursor++];
+        const img = images[i];
+        active++;
+        const finish = () => {
+          active--;
+          pump();
+        };
+        img.decoding = "async";
+        img.onload = () => {
+          if (!cancelled) {
+            if (i === 0) {
+              setAspect(img.naturalWidth / img.naturalHeight);
+              setFirstFrameReady(true);
+              onFirstFrameReady?.();
+            }
+            // هر فریمی که برسد ممکن است دقیقاً همانی باشد که الان لازم داریم
+            // (یا از فریمِ جایگزینِ فعلی به هدف نزدیک‌تر باشد)، پس دوباره رسم کن
+            drawFrame(positionRef.current, true);
+          }
+          finish();
+        };
+        img.onerror = finish;
+        img.src = `${framePrefix}${String(i + 1).padStart(3, "0")}.jpg`;
+      }
+    };
+    pump();
 
     const redraw = () => drawFrame(positionRef.current, true);
     const ro = new ResizeObserver(redraw);
