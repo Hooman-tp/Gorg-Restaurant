@@ -28,10 +28,13 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // عمداً بدون backdrop-blur: زمینه تقریباً مات است پس تاری دیده نمی‌شد، ولی
+  // مرورگر موقع هر تغییرِ فریمِ فیلمِ زیرِ هدر دوباره آن را محاسبه می‌کرد
+  // (روی iOS خیلی سنگین است).
   return (
     <header
       className={`fixed top-0 inset-x-0 z-[100] transition-colors duration-300 ${
-        scrolled ? "bg-[var(--color-ink)]/92 backdrop-blur-md" : "bg-transparent"
+        scrolled ? "bg-[var(--color-ink)]/95" : "bg-transparent"
       }`}
     >
       <div className="max-w-6xl mx-auto flex items-center justify-between px-5 py-3">

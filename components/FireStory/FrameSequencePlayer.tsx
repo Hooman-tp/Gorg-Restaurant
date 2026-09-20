@@ -3,7 +3,10 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 export interface FrameSequenceHandle {
-  /** فریم را بر اساس پیشرفت ۰ تا ۱ رسم می‌کند */
+  /**
+   * پیشرفت ۰ تا ۱ (اعشاری). فریم‌های مجاور با هم ترکیب (کراس‌فید) می‌شوند،
+   * پس حتی اگر ۱۰۰ فریم بیشتر نداریم، حرکت پله‌پله/تیکه‌تیکه دیده نمی‌شود.
+   */
   setProgress: (progress: number) => void;
 }
 
@@ -29,6 +32,23 @@ interface Props {
   zoom?: number;
 }
 
+type Frame = ImageBitmap | HTMLImageElement;
+
+const frameWidth = (f: Frame) => (f instanceof HTMLImageElement ? f.naturalWidth : f.width);
+const frameHeight = (f: Frame) => (f instanceof HTMLImageElement ? f.naturalHeight : f.height);
+
+// سقف تعداد پیکسل‌های بوم. قبلاً بوم با devicePixelRatio کامل (روی آیفون ×۳،
+// یعنی حدود ۳ میلیون پیکسل) ساخته می‌شد و در هر فریم تمام آن دوباره پر می‌شد؛
+// در حالی‌که خودِ فریم‌های فیلم فقط ۷۲۰×۱۲۸۰ هستند، پس این پیکسل‌های اضافه
+// هیچ کیفیتی اضافه نمی‌کردند و فقط اسکرول را سنگین/تکه‌تکه می‌کردند.
+// مرورگر بوم را خودش (روی GPU و تقریباً رایگان) به اندازه‌ی صفحه بزرگ می‌کند.
+const MAX_CANVAS_PIXELS = 1_000_000;
+
+// چند «پله‌ی ترکیب» بین هر دو فریم. ۳۲ یعنی بین فریم n و n+1، ۳۲ حالت
+// میانی داریم؛ برای چشم پیوسته دیده می‌شود ولی هر بار که پله عوض نشده
+// رسم مجدد انجام نمی‌شود.
+const BLEND_STEPS = 32;
+
 // بوم پس‌زمینه فقط ۲ ردیف پیکسل است: ردیف اول = رنگ‌های لبه‌ی بالای فریم،
 // ردیف دوم = رنگ‌های لبه‌ی پایین. مرورگر موقع کشیدنش روی کل صفحه، آن را
 // نرم می‌کند؛ نتیجه این است که رنگ‌های لبه‌ی فیلم بی‌درز به بالا و پایین
@@ -50,48 +70,42 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backdropRef = useRef<HTMLCanvasElement>(null);
   const stepRef = useRef<HTMLCanvasElement | null>(null);
-  const imagesRef = useRef<HTMLImageElement[]>([]);
-  const currentIndexRef = useRef(0);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const framesRef = useRef<(Frame | undefined)[]>([]);
+  const progressRef = useRef(0);
+  const lastKeyRef = useRef(-1);
+  const sizedRef = useRef(false);
+  const aspectRef = useRef(16 / 9);
   const [firstFrameReady, setFirstFrameReady] = useState(false);
   const [aspect, setAspect] = useState(16 / 9);
 
-  const drawCover = (canvas: HTMLCanvasElement, img: HTMLImageElement) => {
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const pxW = Math.round(canvas.clientWidth * dpr);
-    const pxH = Math.round(canvas.clientHeight * dpr);
-    if (pxW === 0 || pxH === 0) return;
-    if (canvas.width !== pxW || canvas.height !== pxH) {
-      canvas.width = pxW;
-      canvas.height = pxH;
+  // فریم موردنظر؛ اگر هنوز دانلود/دیکود نشده، نزدیک‌ترین فریمِ آماده.
+  // (روی شبکه‌ی کند به‌جای فریز شدن، تصویر هم‌جهت با اسکرول دیده می‌شود.)
+  const resolve = (index: number): Frame | undefined => {
+    const frames = framesRef.current;
+    const direct = frames[index];
+    if (direct) return direct;
+    for (let offset = 1; offset < frames.length; offset++) {
+      const before = frames[index - offset];
+      if (before) return before;
+      const after = frames[index + offset];
+      if (after) return after;
     }
-
-    ctx.clearRect(0, 0, pxW, pxH);
-
-    const scale = Math.max(pxW / img.naturalWidth, pxH / img.naturalHeight);
-    const drawW = img.naturalWidth * scale;
-    const drawH = img.naturalHeight * scale;
-    ctx.drawImage(img, (pxW - drawW) / 2, (pxH - drawH) / 2, drawW, drawH);
+    return undefined;
   };
 
-  const drawContain = (canvas: HTMLCanvasElement, img: HTMLImageElement) => {
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  // نسبت بوم در هر دو حالت (cover و contain) یا با صفحه یا با خودِ فریم
+  // یکی است؛ فرمول «cover» در حالت contain هم دقیقاً کل فریم را بی‌برش می‌کشد.
+  const drawFrame = (ctx: CanvasRenderingContext2D, src: Frame, w: number, h: number) => {
+    const sw = frameWidth(src);
+    const sh = frameHeight(src);
+    const scale = Math.max(w / sw, h / sh);
+    const dw = sw * scale;
+    const dh = sh * scale;
+    ctx.drawImage(src, (w - dw) / 2, (h - dh) / 2, dw, dh);
+  };
 
-    // بوم فریم هم‌نسبت با خود فیلم است (CSS آن را هم‌عرض صفحه می‌کند)،
-    // پس کافی است کل تصویر را بدون هیچ برشی در آن بکشیم.
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const pxW = Math.round(canvas.clientWidth * dpr);
-    if (pxW === 0) return;
-    const pxH = Math.round((pxW * img.naturalHeight) / img.naturalWidth);
-    if (canvas.width !== pxW || canvas.height !== pxH) {
-      canvas.width = pxW;
-      canvas.height = pxH;
-    }
-    ctx.drawImage(img, 0, 0, pxW, pxH);
-
+  const drawBackdrop = (src: Frame) => {
     // پس‌زمینه: لبه‌ی بالا و پایین فریم را به دو ردیف کوچک می‌کنیم (دو مرحله‌ای
     // تا نویز/دندانه ایجاد نشود). عمداً از ctx.filter استفاده نشده چون در
     // Safari/iOS پشتیبانی نمی‌شود.
@@ -108,83 +122,149 @@ const FrameSequencePlayer = forwardRef<FrameSequenceHandle, Props>(function Fram
     if (!stepCtx || !bctx) return;
 
     stepCtx.imageSmoothingQuality = "high";
-    stepCtx.drawImage(img, 0, 0, 192, 108);
+    stepCtx.drawImage(src, 0, 0, 192, 108);
     bctx.imageSmoothingQuality = "high";
     bctx.drawImage(stepRef.current, 0, 0, 192, 10, 0, 0, BACKDROP_W, 1); // لبه‌ی بالا
     bctx.drawImage(stepRef.current, 0, 98, 192, 10, 0, 1, BACKDROP_W, 1); // لبه‌ی پایین
   };
 
-  const isReady = (img?: HTMLImageElement) => !!img && img.complete && img.naturalWidth > 0;
+  const paint = (force = false) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !sizedRef.current) return;
 
-  // روی شبکه‌ی کند (مثلاً LTE)، ممکن است دقیقاً فریمی که الان لازم داریم
-  // هنوز دانلود نشده باشد. قبلاً در این حالت drawFrame هیچ‌کاری نمی‌کرد
-  // و بومِ صفحه دقیقاً روی همان فریمِ قبلی «فریز» می‌ماند — همان حسِ
-  // گیر کردنِ مصنوعی که با اسکرولِ سریع دیده می‌شود. حالا به‌جایش
-  // نزدیک‌ترین فریمِ آماده را نشان می‌دهیم تا چیزی هرچند نه ۱۰۰٪ دقیق،
-  // ولی هم‌جهت با اسکرول دیده شود؛ و به‌محض رسیدنِ فریمِ واقعی (در
-  // onload پایین‌تر) خودش جای آن را می‌گیرد.
-  const resolveImage = (index: number): HTMLImageElement | undefined => {
-    const images = imagesRef.current;
-    const direct = images[index];
-    if (isReady(direct)) return direct;
-    for (let offset = 1; offset < images.length; offset++) {
-      const before = images[index - offset];
-      if (isReady(before)) return before;
-      const after = images[index + offset];
-      if (isReady(after)) return after;
+    const clamped = Math.min(1, Math.max(0, progressRef.current));
+    const key = Math.round(clamped * (frameCount - 1) * BLEND_STEPS);
+    if (!force && key === lastKeyRef.current) return;
+
+    const pos = key / BLEND_STEPS;
+    const i0 = Math.min(frameCount - 1, Math.floor(pos));
+    const mix = pos - i0;
+
+    const from = resolve(i0);
+    if (!from) return;
+
+    let ctx = ctxRef.current;
+    if (!ctx) {
+      // فریم کامل و مات است، پس کانال آلفا لازم نیست (ترکیب‌کردنِ بوم با
+      // صفحه ارزان‌تر می‌شود)
+      ctx = canvas.getContext("2d", { alpha: false });
+      ctxRef.current = ctx;
     }
-    return undefined;
+    if (!ctx) return;
+    lastKeyRef.current = key;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    drawFrame(ctx, from, w, h);
+
+    // فریم بعدی را با شفافیتِ متناسب روی فریم فعلی می‌کشیم
+    if (mix > 0.001 && i0 + 1 < frameCount) {
+      const to = resolve(i0 + 1);
+      if (to && to !== from) {
+        ctx.globalAlpha = mix;
+        drawFrame(ctx, to, w, h);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    if (fit === "contain-blur") drawBackdrop(from);
   };
 
-  const drawFrame = (index: number) => {
+  const applySize = (cssW: number, cssH: number) => {
     const canvas = canvasRef.current;
-    const img = resolveImage(index);
-    if (!canvas || !img) return;
+    if (!canvas || cssW <= 0 || cssH <= 0) return;
 
-    if (fit === "contain-blur") drawContain(canvas, img);
-    else drawCover(canvas, img);
+    const dpr = window.devicePixelRatio || 1;
+    let w: number;
+    let h: number;
+    if (fit === "contain-blur") {
+      w = Math.max(1, Math.round(cssW * Math.min(dpr, 2)));
+      h = Math.max(1, Math.round(w / aspectRef.current));
+    } else {
+      const k = Math.min(dpr, 2, Math.sqrt(MAX_CANVAS_PIXELS / (cssW * cssH)));
+      w = Math.max(1, Math.round(cssW * k));
+      h = Math.max(1, Math.round(cssH * k));
+    }
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    sizedRef.current = true;
+    paint(true);
   };
 
   useImperativeHandle(ref, () => ({
     setProgress: (progress: number) => {
-      const index = Math.min(frameCount - 1, Math.max(0, Math.round(progress * (frameCount - 1))));
-      currentIndexRef.current = index;
-      drawFrame(index);
+      progressRef.current = progress;
+      paint();
     },
   }));
 
   useEffect(() => {
     let cancelled = false;
-    const images: HTMLImageElement[] = [];
+    const frames: (Frame | undefined)[] = new Array(frameCount).fill(undefined);
+    framesRef.current = frames;
+    lastKeyRef.current = -1;
+    let anyFrameSeen = false;
+
+    const accept = (i: number, frame: Frame) => {
+      if (cancelled) {
+        if (typeof ImageBitmap !== "undefined" && frame instanceof ImageBitmap) frame.close();
+        return;
+      }
+      frames[i] = frame;
+      if (!anyFrameSeen) {
+        anyFrameSeen = true;
+        aspectRef.current = frameWidth(frame) / frameHeight(frame);
+        setAspect(aspectRef.current);
+        setFirstFrameReady(true);
+        onFirstFrameReady?.();
+      }
+      // هر فریمی که برسد ممکن است دقیقاً همانی باشد که الان لازم داریم
+      // (یا از فریمِ جایگزینِ فعلی به هدف نزدیک‌تر باشد)، پس دوباره رسم کن
+      paint(true);
+    };
 
     for (let i = 0; i < frameCount; i++) {
       const img = new Image();
       img.decoding = "async";
-      img.src = `${framePrefix}${String(i + 1).padStart(3, "0")}.jpg`;
-      img.onload = () => {
+      img.onload = async () => {
         if (cancelled) return;
-        if (i === 0) {
-          setAspect(img.naturalWidth / img.naturalHeight);
-          setFirstFrameReady(true);
-          onFirstFrameReady?.();
+        // دیکودِ JPEG را همین‌جا و یک‌بار انجام می‌دهیم. اگر خودِ تگ Image
+        // را نگه داریم، Safari موبایل برای صرفه‌جویی در حافظه فریم‌های
+        // دیکودشده را دور می‌ریزد و موقع اسکرول دوباره وسطِ رسم دیکود
+        // می‌کند — همان «گیر کردن‌های» ناگهانی. ImageBitmap دیکودشده می‌ماند.
+        let frame: Frame = img;
+        if (typeof createImageBitmap === "function") {
+          try {
+            frame = await createImageBitmap(img);
+          } catch {
+            frame = img;
+          }
         }
-        // هر فریمی که برسد ممکن است دقیقاً همانی باشد که الان لازم داریم
-        // (یا از فریمِ جایگزینِ فعلی به هدف نزدیک‌تر باشد)، پس دوباره رسم کن
-        drawFrame(currentIndexRef.current);
+        accept(i, frame);
       };
-      images.push(img);
+      img.src = `${framePrefix}${String(i + 1).padStart(3, "0")}.jpg`;
     }
-    imagesRef.current = images;
 
-    const redraw = () => drawFrame(currentIndexRef.current);
-    const ro = new ResizeObserver(redraw);
-    if (canvasRef.current) ro.observe(canvasRef.current);
-    window.addEventListener("orientationchange", redraw);
+    const canvas = canvasRef.current;
+    let ro: ResizeObserver | null = null;
+    if (canvas) {
+      ro = new ResizeObserver((entries) => {
+        const rect = entries[0]?.contentRect;
+        if (rect) applySize(rect.width, rect.height);
+      });
+      ro.observe(canvas);
+    }
 
     return () => {
       cancelled = true;
-      ro.disconnect();
-      window.removeEventListener("orientationchange", redraw);
+      ro?.disconnect();
+      sizedRef.current = false;
+      frames.forEach((f) => {
+        if (f && typeof ImageBitmap !== "undefined" && f instanceof ImageBitmap) f.close();
+      });
+      framesRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameCount, framePrefix, fit]);

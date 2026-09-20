@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ScrollTrigger } from "@/lib/gsap";
-import { useGsap } from "@/hooks/useGsap";
 import { useCart } from "@/context/CartContext";
 import { ingredientLabels } from "@/lib/ingredientLabels";
 import { getItemById } from "@/lib/menuData";
@@ -11,8 +9,21 @@ import FrameSequencePlayer, { FrameSequenceHandle } from "./FrameSequencePlayer"
 
 const MOBILE_BREAKPOINT = 768;
 
-const DESKTOP_FRAMES = { count: 100, prefix: "/video/frames/frame_", reach: 36 };
-const MOBILE_FRAMES = { count: 100, prefix: "/video/frames-mobile/frame_", reach: 27 };
+// تعداد واقعی فریم‌ها ۹۹ تاست (frame_001 تا frame_099). قبلاً ۱۰۰ نوشته شده بود
+// و فریم صدم همیشه ۴۰۴ می‌داد.
+const DESKTOP_FRAMES = { count: 99, prefix: "/video/frames/frame_", reach: 36 };
+const MOBILE_FRAMES = { count: 99, prefix: "/video/frames-mobile/frame_", reach: 27 };
+
+// ─────────────── سرعت انیمیشن ───────────────
+// طولِ اسکرولِ این بخش («۶۰۰svh» موبایل و «۵۰۰svh» دسکتاپ) در globals.css،
+// کلاس .fire-story تنظیم می‌شود. عدد بزرگ‌تر = انیمیشن کندتر و سینمایی‌تر.
+//
+// نرمیِ حرکت (ثانیه): فریمِ نمایش‌داده‌شده با این ثابتِ زمانی به موقعیتِ واقعیِ
+// اسکرول می‌رسد، پس وقتی انگشت را برمی‌دارید یا اسکرول می‌ایستد، تصویر
+// ناگهان فریز نمی‌شود و آرام می‌نشیند. عدد بزرگ‌تر = نرم‌تر ولی کمی «سنگین‌تر».
+// روی دسکتاپ خودِ Lenis هم نرم‌سازی می‌کند، پس عدد کوچک‌تری لازم است.
+const SMOOTH_TAU_TOUCH = 0.14;
+const SMOOTH_TAU_DESKTOP = 0.07;
 
 // برچسب‌های شیشه‌ای مواد تشکیل‌دهنده برای «فیلم قدیمی» کالیبره شده بودند
 // (همان فریمِ باز/اکسپلود‌شده‌ی همبرگر که هر ماده در ارتفاع مشخصی می‌ایستاد).
@@ -66,58 +77,91 @@ export default function FireStoryShowcase() {
     };
   }, []);
 
-  useGsap(() => {
-    if (!sectionRef.current || !pinnedRef.current) return;
+  // پیشرفتِ انیمیشن از روی موقعیتِ واقعیِ بخش در صفحه خوانده می‌شود و یک
+  // حلقه‌ی requestAnimationFrame آن را نرم می‌کند و به پخش‌کننده می‌دهد.
+  //
+  // «پین» با position: sticky (CSS) انجام می‌شود، نه با پین‌ِ GSAP. پینِ GSAP
+  // روی iOS بین fixed/absolute جابه‌جا می‌شد و با اسکرولِ بومیِ آیفون همگام
+  // نبود؛ همین لرزش/پرش (تیکه‌تیکه‌شدن) را می‌ساخت. sticky را خودِ مرورگر
+  // روی GPU و بدون هیچ جاوااسکریپتی نگه می‌دارد.
+  useEffect(() => {
+    const section = sectionRef.current;
+    const pinned = pinnedRef.current;
+    if (!section || !pinned) return;
 
-    const existing = ScrollTrigger.getById("fire-story");
-    existing?.kill();
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const tau = finePointer ? SMOOTH_TAU_DESKTOP : SMOOTH_TAU_TOUCH;
 
-    ScrollTrigger.create({
-      id: "fire-story",
-      trigger: sectionRef.current,
-      start: "top top",
-      end: "bottom bottom",
-      // ۱٫۶ ثانیه فاصله بین اسکرول واقعی و فریمی که روی صفحه دیده می‌شد
-      // ایجاد می‌کرد؛ روی موبایل که خودِ لمس اسکرول نرم‌شده (Lenis) روی
-      // آن اعمال نمی‌شود، این تاخیر کاملاً محسوس و «مصنوعی» بود: انگشت
-      // می‌ایستد ولی فیلم چند لحظه‌ی دیگر هم به‌تنهایی ادامه می‌دهد.
-      // عدد کوچک‌تر یعنی فریم تقریباً همزمان با اسکرول عوض می‌شود؛ کمی
-      // (نه صفر) نرمی نگه داشته شده تا بین ۱۰۰ فریمِ مجزا، پرش خام و
-      // دندانه‌دار دیده نشود. برای حسّ حتی خام‌تر/بی‌واسطه‌تر می‌توانید
-      // این را به true تغییر دهید.
-      scrub: 0.4,
-      // بدون این، اولین لحظه‌ی رسیدن به بخش پین‌شده یک تکانِ کوچکِ
-      // یک‌فریمی دارد (رفتار شناخته‌شده‌ی GSAP در پین‌کردن)
-      anticipatePin: 1,
-      invalidateOnRefresh: true,
-      pin: pinnedRef.current,
-      onUpdate: (self) => {
-        playerRef.current?.setProgress(self.progress);
+    let raf = 0;
+    let last = 0;
+    let current = -1; // -1 یعنی هنوز مقداردهی نشده؛ اولین بار مستقیم می‌پرد
+    let cta = false;
 
-        const opacity = labelOpacityForProgress(self.progress);
-        labelRefs.current.forEach((el) => {
-          if (el) el.style.opacity = String(opacity);
-        });
+    // ۰ = بالای بخش به بالای صفحه رسیده، ۱ = پین‌شدن تمام شده
+    const readTarget = () => {
+      const rect = section.getBoundingClientRect();
+      const distance = rect.height - pinned.offsetHeight;
+      return distance > 0 ? Math.min(1, Math.max(0, -rect.top / distance)) : 0;
+    };
 
-        setShowCta(self.progress > 0.9);
-      },
-    });
-  }, []);
+    const tick = (now: number) => {
+      raf = 0;
+      const dt = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60;
+      last = now;
+
+      const target = readTarget();
+      if (current < 0) current = target;
+
+      // نرم‌سازیِ وابسته به زمان (نه به تعداد فریم‌های صفحه)، تا روی
+      // گوشی‌های ۶۰ و ۱۲۰ هرتز حس یکسان باشد
+      current += (target - current) * (1 - Math.exp(-dt / tau));
+      if (Math.abs(target - current) < 0.00015) current = target;
+
+      playerRef.current?.setProgress(current);
+
+      const opacity = labelOpacityForProgress(current);
+      labelRefs.current.forEach((el) => {
+        if (el) el.style.opacity = String(opacity);
+      });
+
+      const nextCta = current > 0.9;
+      if (nextCta !== cta) {
+        cta = nextCta;
+        setShowCta(nextCta);
+      }
+
+      // تا وقتی به موقعیت نهایی نرسیده‌ایم ادامه بده؛ بعدش حلقه کاملاً می‌خوابد
+      if (current !== target) raf = requestAnimationFrame(tick);
+      else last = 0;
+    };
+
+    const kick = () => {
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener("scroll", kick, { passive: true });
+    window.addEventListener("resize", kick);
+    kick();
+
+    return () => {
+      window.removeEventListener("scroll", kick);
+      window.removeEventListener("resize", kick);
+      if (raf) cancelAnimationFrame(raf);
+    };
+    // با عوض‌شدنِ device پخش‌کننده دوباره ساخته می‌شود؛ این افکت هم باید
+    // دوباره اجرا شود تا فریمِ درست فوراً رسم شود
+  }, [device]);
 
   const frameSet = device === "mobile" ? MOBILE_FRAMES : DESKTOP_FRAMES;
 
   return (
-    // این عدد = مسافتِ فیزیکیِ اسکرول لازم برای دیدنِ کل ۱۰۰ فریم.
-    // ۵۲۰vh (بیش از ۵ صفحه‌ی کامل) باعث می‌شد روی موبایل هر سوایپ فقط
-    // بخش خیلی کوچکی از انیمیشن را جلو ببرد و کل بخش «تمام‌نشدنی» و
-    // بی‌واکنش حس شود. ۳۲۰vh هم‌چنان فضای کافی برای حرکتِ آرام و
-    // سینمایی می‌دهد ولی خیلی زودتر جواب می‌دهد. عدد کاملاً دلخواه
-    // است — بزرگ‌تر = کندتر/سینمایی‌تر، کوچک‌تر = سریع‌تر/فرزتر.
-    <section ref={sectionRef} className="relative" style={{ height: "320vh" }}>
+    // طولِ اسکرول در globals.css (.fire-story) تعیین می‌شود تا با اولین رندر
+    // درست باشد و بعد از تشخیص دستگاه، صفحه نپرد.
+    <section ref={sectionRef} className="fire-story relative">
       {/* ارتفاع 100svh (با h-screen به‌عنوان پشتیبان): روی موبایل ارتفاعِ «قابل‌دیدنِ» صفحه را می‌گیرد، پس دکمه‌ی پایین زیر نوار مرورگر نمی‌رود */}
       <div
         ref={pinnedRef}
-        className="relative h-screen w-full overflow-hidden bg-[var(--color-ink)]"
+        className="sticky top-0 h-screen w-full overflow-hidden bg-[var(--color-ink)]"
         style={{ height: "100svh" }}
       >
         {/*

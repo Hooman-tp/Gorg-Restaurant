@@ -2,53 +2,46 @@
 
 import { useEffect } from "react";
 import Lenis from "lenis";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 /**
- * اسکرول نرم سراسری سایت. مقدار lenis روی window قرار می‌گیرد تا
- * کامپوننت‌هایی مثل ScrollProgress بتوانند مستقیم به موقعیت واقعی
- * اسکرول (نه window.scrollY خام) دسترسی داشته باشند.
+ * اسکرول نرمِ سراسریِ سایت — فقط برای دسکتاپ (ماوس/تاچ‌پد).
+ *
+ * روی موبایل و تبلت عمداً هیچ اسکرولِ جاوااسکریپتی نداریم و اسکرولِ بومیِ
+ * خودِ گوشی کار می‌کند. دلیلش: قبلاً syncTouch: true بود؛ این حالت لمس را
+ * از رویدادهای جاوااسکریپت رد می‌کند و اسکرول را در هر فریم با scrollTo
+ * جابه‌جا می‌کند. Safari آیفون اسکرولِ برنامه‌نویسی‌شده را روی GPU
+ * انجام نمی‌دهد، پس همه‌چیز (و فریم‌های فیلم) تکه‌تکه و ناهموار می‌شد و
+ * سرعت هم بیش‌ازحد به نظر می‌رسید. اسکرولِ بومی هم شتابِ انگشت و هم
+ * ادامه‌ی حرکت بعد از برداشتنِ انگشت را کاملاً نرم و بی‌دردسر دارد.
+ *
+ * مقدار lenis روی window قرار می‌گیرد تا BackToTop بتواند نرم به بالا برگردد.
  */
 export function useLenis() {
   useEffect(() => {
+    const desktop = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (!desktop) return;
+
     // سرعت اسکرول: عدد wheelMultiplier را کمتر کنید تا اسکرول کندتر شود،
     // و lerp را کمتر کنید تا حرکت نرم‌تر و «سنگین‌تر» شود.
-    //
-    // syncTouch: پیش‌فرضِ Lenis برای لمس، false است — یعنی روی موبایل
-    // اسکرول کاملاً خام/بومی انجام می‌شد و momentum (لمی‌کردن نرمِ لنیس)
-    // اصلاً روی آن اثر نداشت. نتیجه دقیقاً همان چیزی بود که دیدید: با
-    // برداشتنِ انگشت، اسکرول (و به‌تبعش فریمِ فیلم) بی‌مقدمه می‌ایستاد،
-    // چون هیچ حرکتِ باقی‌مانده‌ای برای دنبال‌کردن وجود نداشت. با
-    // syncTouch: true لمس هم از همین موتورِ لرپ عبور می‌کند، پس بعد از
-    // برداشتنِ انگشت چند لحظه با شتابِ رو‌به‌کاهش ادامه می‌دهد — درست
-    // مثل اسکرول‌های نرمِ حرفه‌ای. syncTouchLerp را عمداً ننوشتم چون
-    // پیش‌فرضش (۰٫۰۷۵) خودش دقیقاً با lerp بالا یکی است، پس حس لمس و
-    // ویل باهم یکدست می‌شود.
-    // (نکته‌ی خودِ Lenis: روی iOS زیر ۱۶ ممکن است کمی ناپایدار باشد؛ اگر
-    // جایی روی موبایل قدیمی مشکلی دیدید، همین یک خط را false کنید.)
     const lenis = new Lenis({
       smoothWheel: true,
       lerp: 0.075,
       wheelMultiplier: 0.6,
-      touchMultiplier: 1,
-      syncTouch: true,
       gestureOrientation: "vertical",
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__lenis = lenis;
 
-    lenis.on("scroll", ScrollTrigger.update);
-
-    const update = (time: number) => {
-      lenis.raf(time * 1000);
+    let raf = 0;
+    const loop = (time: number) => {
+      lenis.raf(time);
+      raf = requestAnimationFrame(loop);
     };
-
-    gsap.ticker.add(update);
-    gsap.ticker.lagSmoothing(0);
+    raf = requestAnimationFrame(loop);
 
     return () => {
-      gsap.ticker.remove(update);
+      cancelAnimationFrame(raf);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (window as any).__lenis;
       lenis.destroy();

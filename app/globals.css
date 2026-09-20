@@ -93,18 +93,60 @@ textarea:focus-visible {
   background-position: center 40%;
 }
 
-/* دانه‌ی فیلم ظریف روی کل سایت برای حس سینمایی/خام */
+/* دانه‌ی فیلم ظریف روی کل سایت برای حس سینمایی/خام.
+   قبلاً این لایه position:absolute و به‌اندازه‌ی «کل ارتفاع صفحه» (ده‌ها هزار
+   پیکسل) بود و mix-blend-mode: overlay داشت؛ یعنی مرورگر در هر فریمِ اسکرول یا
+   تغییرِ کانوس، کل صفحه را زیر آن دوباره ترکیب می‌کرد — از سنگین‌ترین کارها
+   برای اسکرول، مخصوصاً روی موبایل. حالا فقط به‌اندازه‌ی صفحه‌ی نمایش
+   (fixed) است، بدون blend-mode، و روی صفحه‌های لمسی اصلاً رسم نمی‌شود؛
+   با شفافیتِ ۴٪ تفاوتش با قبل قابل‌دیدن نیست. */
 .film-grain {
   position: relative;
 }
 .film-grain::after {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.05;
-  mix-blend-mode: overlay;
+  opacity: 0.04;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (pointer: coarse) {
+  .film-grain::after {
+    display: none;
+  }
+}
+
+/* ═══════════════ داستان آتش (بخش اسکرول‌محور صفحه‌ی اصلی) ═══════════════
+   طولِ اسکرول = سرعتِ انیمیشن. عدد بزرگ‌تر = کندتر و سینمایی‌تر.
+   (svh: ارتفاعِ ثابتِ صفحه با نوار مرورگر؛ vh فقط برای مرورگرهای قدیمی) */
+.fire-story {
+  height: 600vh;
+  height: 600svh;
+}
+@media (min-width: 768px) and (orientation: landscape) {
+  .fire-story {
+    height: 500vh;
+    height: 500svh;
+  }
+}
+
+/* قواعد لازمِ Lenis (همان lenis.css رسمی) */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
 }
 
 /* ═══════════════ نشان چنگال (عنصر امضادار برند) ═══════════════ */
