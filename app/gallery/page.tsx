@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { galleryPhotos } from "@/lib/gallery";
+import { getGalleryPhotos } from "@/lib/gallery";
 import GalleryGrid from "@/components/GalleryGrid";
 
 export const metadata: Metadata = {
@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   description: "نمایی از غذاها و فضای رستوران گرگ.",
 };
 
-export default function GalleryPage() {
+// گالری از دیتابیس (پنل مدیریت) می‌آید؛ نباید در زمان build ثابت بماند
+export const dynamic = "force-dynamic";
+
+export default async function GalleryPage() {
+  const photos = await getGalleryPhotos();
   return (
     <div className="max-w-6xl mx-auto px-5 pt-28 pb-24">
       <span className="text-xs tracking-[0.3em] text-[var(--color-ember-light)] uppercase">Gallery</span>
@@ -16,7 +20,7 @@ export default function GalleryPage() {
         نگاهی به فضا و غذاهای رستوران؛ برای دیدن نسخه‌ی بزرگ، روی هر تصویر
         کلیک کنید.
       </p>
-      <GalleryGrid photos={galleryPhotos} />
+      <GalleryGrid photos={photos} />
     </div>
   );
 }

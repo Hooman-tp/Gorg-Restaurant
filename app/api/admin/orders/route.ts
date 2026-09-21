@@ -1,33 +1,46 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifyAdminToken, COOKIE_NAME } from "@/lib/adminAuth";
-import { getAllOrders, updateOrderStatus, StoredOrder } from "@/lib/orders";
-import { isDbConfigured } from "@/lib/db";
+import { NextRequest } from "next/server";
+import { adminOnly, json, readBody, str } from "@/lib/adminApi";
+import { listOrders, orderPulse, setOrderStatus, OrderStatus } from "@/lib/orders";
+import { getSettings } from "@/lib/settings";
+import { sendSms } from "@/lib/kavenegar";
 
-function requireAdmin(req: NextRequest) {
-  const token = req.cookies.get(COOKIE_NAME)?.value;
-  return verifyAdminToken(token);
-}
+/** GET ?pulse=1 → شمارنده‌ی سبک برای زنگ سفارش جدید · وگرنه لیست سفارش‌ها با فیلتر */
+export const GET = adminOnly(async (req: NextRequest) => {
+  const p = req.nextUrl.searchParams;
+  if (p.get("pulse")) return json(await orderPulse());
+  const orders = await listOrders({
+    status: p.get("status") ?? undefined,
+    source: p.get("source") ?? undefined,
+    q: p.get("q") ?? undefined,
+    from: p.get("from") ?? undefined,
+    to: p.get("to") ?? undefined,
+    limit: Number(p.get("limit")) || 100,
+  });
+  return json({ orders });
+});
 
-export async function GET(req: NextRequest) {
-  if (!requireAdmin(req)) {
-    return NextResponse.json({ error: "دسترسی ندارید" }, { status: 401 });
-  }
-  if (!isDbConfigured()) {
-    return NextResponse.json({ error: "دیتابیس هنوز وصل نشده" }, { status: 503 });
-  }
-  const orders = await getAllOrders();
-  return NextResponse.json({ orders });
-}
+const VALID: OrderStatus[] = ["received", "preparing", "ready", "delivered", "cancelled"];
 
-export async function PATCH(req: NextRequest) {
-  if (!requireAdmin(req)) {
-    return NextResponse.json({ error: "دسترسی ندارید" }, { status: 401 });
+export const PATCH = adminOnly(async (req: NextRequest) => {
+  const body = await readBody<{ orderCode?: string; status?: string; reason?: string }>(req);
+  const orderCode = str(body.orderCode, 20);
+  const status = body.status as OrderStatus;
+  if (!orderCode || !VALID.includes(status)) return json({ error: "درخواست نامعتبر است" }, 400);
+
+  const order = await setOrderStatus(orderCode, status, body.reason);
+  if (!order) return json({ error: "سفارش پیدا نشد یا قبلاً لغو شده است" }, 404);
+
+  // پیامک «آماده است» فقط برای مشتریِ سایت و فقط اگر در تنظیمات روشن باشد
+  if (status === "ready" && order.phone && order.source !== "pos") {
+    try {
+      const s = await getSettings();
+      if (s.smsOnReady) {
+        const how = order.order_type === "delivery" ? "به‌زودی برایتان ارسال می‌شود" : order.order_type === "dine_in" ? "به‌زودی سرو می‌شود" : "آماده‌ی تحویل است";
+        await sendSms(order.phone, `${s.businessName}: سفارش ${order.order_code} ${how}.`);
+      }
+    } catch (err) {
+      console.error("ready sms error", err);
+    }
   }
-  const { orderCode, status } = await req.json();
-  const validStatuses: StoredOrder["status"][] = ["received", "preparing", "ready", "delivered", "cancelled"];
-  if (!orderCode || !validStatuses.includes(status)) {
-    return NextResponse.json({ error: "درخواست نامعتبر است" }, { status: 400 });
-  }
-  const ok = await updateOrderStatus(orderCode, status);
-  return NextResponse.json({ ok });
-}
+  return json({ ok: true, order });
+});

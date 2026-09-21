@@ -5,7 +5,7 @@ import { sendSms } from "@/lib/kavenegar";
 export interface OrderDetails {
   lines: CartLine[];
   total: number;
-  orderType: "delivery" | "pickup";
+  orderType: "delivery" | "pickup" | "dine_in";
   orderCode: string;
   name: string;
   phone: string;
@@ -14,6 +14,8 @@ export interface OrderDetails {
   refId?: number; // شماره پیگیری بانکی (سفارش فقط بعد از پرداخت موفق ثبت می‌شود)
   lat?: number; // موقعیت انتخاب‌شده روی نقشه (اختیاری)
   lng?: number;
+  tableNo?: string; // سفارش با QR میز
+  deliveryFee?: number;
 }
 
 /** متنِ کاربر را قبل از گذاشتن در ایمیلِ HTML بی‌خطر می‌کند */
@@ -58,11 +60,12 @@ export async function notifyOwnerByEmail(order: OrderDetails) {
           <p><b>وضعیت پرداخت:</b> پرداخت‌شده${order.refId ? ` — شماره پیگیری بانکی: ${order.refId}` : ""}</p>
           <p><b>نام:</b> ${esc(order.name)}</p>
           <p><b>تلفن:</b> ${esc(order.phone)}</p>
-          <p><b>نوع تحویل:</b> ${order.orderType === "delivery" ? "ارسال با پیک" : "تحویل حضوری"}</p>
+          <p><b>نوع تحویل:</b> ${order.orderType === "delivery" ? "ارسال با پیک" : order.orderType === "dine_in" ? `سالن — میز ${esc(order.tableNo ?? "")}` : "تحویل حضوری"}</p>
           ${order.address ? `<p><b>آدرس:</b> ${esc(order.address)}</p>` : ""}
           ${mapLink(order.lat, order.lng) ? `<p><b>موقعیت روی نقشه:</b> <a href="${mapLink(order.lat, order.lng)}">باز کردن در نقشه</a></p>` : ""}
           ${order.notes ? `<p><b>توضیحات:</b> ${esc(order.notes)}</p>` : ""}
           <table cellpadding="6">${itemsHtml}</table>
+          ${order.deliveryFee ? `<p><b>هزینه ارسال:</b> ${formatPrice(order.deliveryFee)} تومان</p>` : ""}
           <p><b>جمع کل:</b> ${formatPrice(order.total)} تومان</p>
         </div>
       `,
@@ -76,7 +79,8 @@ export async function notifyOwnerByEmail(order: OrderDetails) {
 
 /** پیامک تأیید سفارش را برای مشتری ارسال می‌کند */
 export async function notifyCustomerBySms(order: OrderDetails) {
-  const etaText = order.orderType === "delivery" ? "ارسال طی ۴۵ تا ۶۰ دقیقه" : "آماده طی ۲۵ تا ۳۵ دقیقه";
+  const etaText =
+    order.orderType === "delivery" ? "ارسال طی ۴۵ تا ۶۰ دقیقه" : order.orderType === "dine_in" ? "به‌زودی سرو می‌شود" : "آماده طی ۲۵ تا ۳۵ دقیقه";
   const message = `گرگ | سفارش شما با کد ${order.orderCode} ثبت شد. ${etaText}. جمع: ${formatPrice(
     order.total
   )} تومان. با تشکر از خرید شما`;

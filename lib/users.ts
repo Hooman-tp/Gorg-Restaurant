@@ -1,4 +1,4 @@
-import { getSql, isDbConfigured } from "./db";
+import { ensureSchema, getSql, isDbConfigured } from "./db";
 
 /** اطلاعاتی که برای هر شماره‌ی موبایل نگه می‌داریم تا سفارش بعدی خودکار پر شود */
 export interface UserProfile {
@@ -17,6 +17,7 @@ export async function getProfile(phone: string): Promise<UserProfile | null> {
   const sql = getSql();
   if (!sql) return null;
   try {
+    await ensureSchema();
     const rows = await sql`SELECT name, address, lat, lng FROM users WHERE phone = ${phone} LIMIT 1`;
     const r = rows[0] as { name: string | null; address: string | null; lat: number | null; lng: number | null } | undefined;
     if (!r) return null;
@@ -41,6 +42,7 @@ export async function saveProfile(
   const sql = getSql();
   if (!sql) return false;
   try {
+    await ensureSchema();
     const address = data.address?.trim() ? data.address.trim() : null;
     const lat = typeof data.lat === "number" ? data.lat : null;
     const lng = typeof data.lng === "number" ? data.lng : null;

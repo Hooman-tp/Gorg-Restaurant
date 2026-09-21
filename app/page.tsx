@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { categories, getSignatureItems, menuItems } from "@/lib/menuData";
-import { galleryPhotos } from "@/lib/gallery";
+import { getMenu } from "@/lib/menuStore";
+import { getGalleryPhotos } from "@/lib/gallery";
 import DishCard from "@/components/DishCard";
 import FireStoryShowcase from "@/components/FireStory/FireStoryShowcase";
 import InstallAppSection from "@/components/InstallAppSection";
@@ -16,11 +16,17 @@ const CATEGORY_ICONS: Record<string, string> = {
   drinks: "🥤",
 };
 
-// تیزر گالری: ۶ عکسِ اولِ گالری (از lib/gallery.ts)
-const GALLERY_TEASER = galleryPhotos.slice(0, 6);
+// منو و گالری از دیتابیس (پنل مدیریت) می‌آیند؛ نباید در زمان build ثابت بمانند
+export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const signatureDishes = getSignatureItems().slice(0, 7);
+export default async function HomePage() {
+  const [menu, galleryPhotos] = await Promise.all([getMenu(), getGalleryPhotos()]);
+  // تیزر گالری: ۶ عکسِ اولِ گالری
+  const GALLERY_TEASER = galleryPhotos.slice(0, 6);
+  const categories = menu.categories.filter((c) => menu.items.some((i) => i.category === c.id));
+  const signatureDishes = menu.items.filter((i) => i.signature).slice(0, 7);
+  // آیتمِ دکمه‌ی زیر انیمیشنِ برگر: همان «bg-1»؛ اگر از منو حذف شده باشد اولین برگر
+  const heroDish = menu.items.find((i) => i.id === "bg-1") ?? menu.items.find((i) => i.category === "burger");
 
   return (
     <>
@@ -62,7 +68,7 @@ export default function HomePage() {
       </section>
 
       {/* ─────────────── داستان آتش گرگ (ویدیوی کنترل‌شده با اسکرول) ─────────────── */}
-      <FireStoryShowcase />
+      <FireStoryShowcase heroItem={heroDish && heroDish.available !== false ? { id: heroDish.id, name: heroDish.name, price: heroDish.price } : undefined} />
 
       {/* ─────────────── معرفی کوتاه ─────────────── */}
       <section className="max-w-4xl mx-auto px-5 py-24 text-center">
@@ -94,7 +100,7 @@ export default function HomePage() {
               className="gorg-card rounded-2xl p-5 flex flex-col items-center text-center gap-2"
             >
               <span className="text-3xl" aria-hidden="true">
-                {CATEGORY_ICONS[cat.id]}
+                {CATEGORY_ICONS[cat.id] ?? "🍽️"}
               </span>
               <span className="font-bold text-sm">{cat.label}</span>
               <span className="text-xs text-[var(--color-ash)] leading-5">{cat.blurb}</span>
@@ -134,7 +140,7 @@ export default function HomePage() {
           </div>
           <div>
             <p className="text-3xl font-black text-[var(--color-ember-light)]">
-              {menuItems.length.toLocaleString("fa-IR")}
+              {menu.items.length.toLocaleString("fa-IR")}
             </p>
             <p className="text-xs text-[var(--color-ash)] mt-1">پرس در منو</p>
           </div>

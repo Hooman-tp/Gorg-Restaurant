@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { StoredOrder } from "@/lib/orders";
+import type { StoredOrder } from "@/lib/orderMeta";
 
 const STATUS_LABELS: Record<string, string> = {
   received: "ثبت شده",
@@ -132,7 +132,7 @@ export default function TrackPage() {
           </div>
 
           <p className="text-xs text-[var(--color-ash)]">
-            {order.order_type === "delivery" ? `آدرس: ${order.address}` : "تحویل حضوری"}
+            {order.order_type === "delivery" ? `آدرس: ${order.address}` : order.order_type === "dine_in" ? `سالن${order.table_no ? ` — میز ${order.table_no}` : ""}` : "تحویل حضوری"}
           </p>
         </div>
       )}

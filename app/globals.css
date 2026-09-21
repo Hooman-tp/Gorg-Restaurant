@@ -320,3 +320,68 @@ html.lenis body {
 }
 .map-pin { transform: translate(-50%, -100%); transition: transform 0.15s ease-out; }
 .map-pin.is-moving { transform: translate(-50%, calc(-100% - 12px)); }
+
+/* ═══════════════ پنل مدیریت (همان زبان طراحیِ سایت) ═══════════════ */
+.panel-card {
+  background: linear-gradient(180deg, var(--color-charcoal) 0%, var(--color-charcoal-2) 100%);
+  border: 1px solid rgba(245, 237, 231, 0.07);
+  border-radius: 1rem;
+}
+.panel-input {
+  width: 100%;
+  background: var(--color-ink);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.875rem;
+  color: var(--color-bone);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.panel-input:focus {
+  border-color: var(--color-ember);
+}
+.panel-input::placeholder {
+  color: rgba(168, 148, 144, 0.7);
+}
+select.panel-input option {
+  background: var(--color-charcoal);
+  color: var(--color-bone);
+}
+.btn-sm {
+  padding: 9px 18px !important;
+  font-size: 13px;
+}
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #ff8d7a;
+  font-weight: 700;
+  border: 1.5px solid rgba(221, 74, 52, 0.45);
+  background: rgba(221, 74, 52, 0.08);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 13px;
+  transition: background 0.2s ease;
+}
+.btn-danger:hover {
+  background: rgba(221, 74, 52, 0.2);
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+@keyframes panel-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(221, 74, 52, 0.55); }
+  50% { box-shadow: 0 0 0 8px rgba(221, 74, 52, 0); }
+}
+.panel-pulse {
+  animation: panel-pulse 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-pulse { animation: none; }
+}

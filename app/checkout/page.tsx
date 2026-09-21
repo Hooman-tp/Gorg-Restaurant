@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { maskMobile } from "@/lib/phone";
+import { readTable, TableInfo } from "@/lib/tableSession";
 import type { PickedLocation } from "@/components/AddressMapPicker";
 
 // نقشه فقط وقتی کاربر بازش کند بارگذاری می‌شود (کتابخانه‌ی نقشه سنگین است)
@@ -22,12 +23,28 @@ export default function CheckoutPage() {
   const { phone, ready, openLogin } = useAuth();
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [orderType, setOrderType] = useState<"delivery" | "pickup">("delivery");
+  const [orderType, setOrderType] = useState<"delivery" | "pickup" | "dine_in">("delivery");
+  // میزی که مشتری با QR اسکن کرده (اگر باشد، سفارش «سالن» هم گزینه است)
+  const [table, setTable] = useState<TableInfo | null>(null);
+  // تنظیماتی که مدیر از پنل می‌گذارد: باز/بسته بودن سفارش، حداقل مبلغ، هزینه‌ی ارسال
+  const [cfg, setCfg] = useState<{ ordersOpen: boolean; closedMessage: string; minOrder: number; deliveryFee: number } | null>(null);
   const [form, setForm] = useState({ name: "", address: "", notes: "" });
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   // اگر مشتری آدرس را خودش تایپ/ویرایش کرده باشد، آدرسِ پیشنهادیِ نقشه رویش نوشته نمی‌شود
   const [addressEdited, setAddressEdited] = useState(false);
+
+  useEffect(() => {
+    const t = readTable();
+    if (t) {
+      setTable(t);
+      setOrderType("dine_in");
+    }
+    fetch("/api/settings/public", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setCfg(d))
+      .catch(() => {});
+  }, []);
 
   // نام و آدرسِ ذخیره‌شده‌ی همین شماره‌ی موبایل (از سفارش قبلی) خودکار پر می‌شود
   useEffect(() => {
@@ -78,6 +95,7 @@ export default function CheckoutPage() {
           notes: form.notes,
           lat: orderType === "delivery" ? location?.lat : undefined,
           lng: orderType === "delivery" ? location?.lng : undefined,
+          tableNo: orderType === "dine_in" ? table?.code : undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -100,6 +118,11 @@ export default function CheckoutPage() {
       setStatus("error");
     }
   };
+
+  const fee = orderType === "delivery" ? cfg?.deliveryFee ?? 0 : 0;
+  const payable = total + fee;
+  const closed = cfg ? !cfg.ordersOpen : false;
+  const belowMin = (cfg?.minOrder ?? 0) > total;
 
   if (lines.length === 0) {
     return (
@@ -155,9 +178,15 @@ export default function CheckoutPage() {
                 </span>
               </div>
             ))}
+            {fee > 0 && (
+              <div className="flex items-center justify-between text-sm text-[var(--color-ash)]">
+                <span>هزینه ارسال</span>
+                <span>{formatPrice(fee)} تومان</span>
+              </div>
+            )}
             <div className="border-t border-white/10 pt-3 flex items-center justify-between font-extrabold">
               <span>جمع کل</span>
-              <span>{formatPrice(total)} تومان</span>
+              <span>{formatPrice(payable)} تومان</span>
             </div>
           </div>
         </div>
@@ -186,6 +215,19 @@ export default function CheckoutPage() {
             >
               تحویل حضوری
             </button>
+            {table && (
+              <button
+                type="button"
+                onClick={() => setOrderType("dine_in")}
+                className={`flex-1 py-3 rounded-xl text-sm font-bold border ${
+                  orderType === "dine_in"
+                    ? "bg-[var(--color-ember)] border-[var(--color-ember)] text-white"
+                    : "border-white/12 text-[var(--color-ash)]"
+                }`}
+              >
+                سالن · میز {table.code}
+              </button>
+            )}
           </div>
 
           <div>
@@ -264,14 +306,25 @@ export default function CheckoutPage() {
             />
           </div>
 
+          {closed && (
+            <p role="alert" className="text-sm text-amber-300 leading-7">
+              {cfg?.closedMessage}
+            </p>
+          )}
+          {!closed && belowMin && (
+            <p role="alert" className="text-sm text-amber-300 leading-7">
+              حداقل مبلغ سفارش {formatPrice(cfg?.minOrder ?? 0)} تومان است؛ چند آیتم دیگر به سبد اضافه کنید.
+            </p>
+          )}
+
           {status === "error" && (
             <p role="alert" className="text-sm text-[var(--color-ember-light)] leading-7">
               {errorMsg}
             </p>
           )}
 
-          <button type="submit" disabled={status === "sending"} className="btn-primary w-full disabled:opacity-60">
-            {status === "sending" ? "در حال انتقال به درگاه پرداخت…" : `پرداخت و ثبت سفارش · ${formatPrice(total)} تومان`}
+          <button type="submit" disabled={status === "sending" || closed || belowMin} className="btn-primary w-full disabled:opacity-60">
+            {status === "sending" ? "در حال انتقال به درگاه پرداخت…" : `پرداخت و ثبت سفارش · ${formatPrice(payable)} تومان`}
           </button>
           <p className="text-xs text-[var(--color-ash)] text-center leading-6">
             سفارش شما فقط بعد از پرداخت موفق ثبت و برای رستوران ارسال می‌شود.

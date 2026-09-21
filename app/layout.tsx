@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import AuthModal from "@/components/AuthModal";
+import PublicOnly from "@/components/PublicOnly";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 
@@ -35,23 +36,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fa" dir="rtl">
       <body className="film-grain min-h-screen flex flex-col">
-        <StructuredData />
-        <SmoothScroll />
-        <ScrollProgress />
-        <SkipToContent />
+        <PublicOnly>
+          <StructuredData />
+          <SmoothScroll />
+          <ScrollProgress />
+          <SkipToContent />
+        </PublicOnly>
         <AuthProvider>
           <CartProvider>
-            <Header />
-            <CartDrawer />
-            <AuthModal />
+            <PublicOnly>
+              <Header />
+              <CartDrawer />
+              <AuthModal />
+            </PublicOnly>
             <main id="main-content" className="flex-1">
               {children}
             </main>
-            <Footer />
+            <PublicOnly>
+              <Footer />
+            </PublicOnly>
           </CartProvider>
         </AuthProvider>
-        <WhatsAppButton />
-        <BackToTop />
+        <PublicOnly>
+          <WhatsAppButton />
+          <BackToTop />
+        </PublicOnly>
       </body>
     </html>
   );

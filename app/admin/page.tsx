@@ -1,188 +1,194 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { StoredOrder } from "@/lib/orders";
+import Link from "next/link";
+import { useState } from "react";
+import { api, fa, fmtLongDay, money, moneyShort } from "@/lib/adminClient";
+import type { Report } from "@/lib/reports";
+import type { StoredOrder } from "@/lib/orderMeta";
+import type { InventoryItem } from "@/lib/inventory";
+import type { ShiftState } from "@/lib/cash";
+import { useFetch } from "@/components/admin/hooks";
+import { BarChart, Card, dailyBars, Donut, Empty, ErrorBox, Loading, PageTitle, ShareBars, SOURCE_COLORS, Stat, Toggle, useToast } from "@/components/admin/ui";
+import { OrderCard, OrderDetail } from "@/components/admin/OrderViews";
 
-const STATUS_LABELS: Record<string, string> = {
-  received: "ثبت شده",
-  preparing: "در حال آماده‌سازی",
-  ready: "آماده‌ی تحویل",
-  delivered: "تحویل داده شده",
-  cancelled: "لغو شده",
-};
-
-const STATUS_OPTIONS = Object.keys(STATUS_LABELS);
-
-function formatPrice(n: number) {
-  return n.toLocaleString("fa-IR");
+interface DashboardData {
+  today: Report;
+  week: Report;
+  pulse: { received: number; preparing: number; ready: number };
+  active: StoredOrder[];
+  lowStock: InventoryItem[];
+  lowStockCount: number;
+  shift: ShiftState | null;
+  menuItems: number;
 }
 
-export default function AdminPage() {
-  const [authed, setAuthed] = useState(false);
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [orders, setOrders] = useState<StoredOrder[]>([]);
-  const [loadError, setLoadError] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function DashboardPage() {
+  const toast = useToast();
+  const { data, error, loading, reload } = useFetch<DashboardData>("/api/admin/dashboard", { refreshMs: 30000, refreshOnNewOrder: true });
+  const settings = useFetch<{ settings: { ordersOpen: boolean } }>("/api/admin/settings");
+  const [open, setOpen] = useState<StoredOrder | null>(null);
+  const [toggling, setToggling] = useState(false);
 
-  const loadOrders = async () => {
-    setLoading(true);
-    setLoadError("");
+  if (loading && !data) return <Loading />;
+  if (error && !data) return <ErrorBox message={error} onRetry={() => reload()} />;
+  if (!data) return null;
+
+  const { today, week, pulse } = data;
+  const ordersOpen = settings.data?.settings.ordersOpen ?? true;
+  const inFlight = pulse.received + pulse.preparing + pulse.ready;
+  const src = (k: "website" | "qr" | "pos") => today.bySource[k] ?? { orders: 0, revenue: 0 };
+  const totalSrc = src("website").orders + src("qr").orders + src("pos").orders;
+
+  async function toggleOpen(v: boolean) {
+    setToggling(true);
     try {
-      const res = await fetch("/api/admin/orders");
-      if (res.status === 401) {
-        setAuthed(false);
-        return;
-      }
-      const data = await res.json();
-      if (!res.ok) {
-        setLoadError(data.error || "خطا در بارگذاری سفارش‌ها");
-        return;
-      }
-      setOrders(data.orders);
-      setAuthed(true);
-    } catch {
-      setLoadError("ارتباط با سرور برقرار نشد");
+      await api("/api/admin/settings", { method: "PUT", body: { ordersOpen: v } });
+      settings.reload(true);
+      toast(v ? "سفارش آنلاین باز شد" : "سفارش آنلاین بسته شد (سایت و QR)", v ? "ok" : "info");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "خطا", "error");
     } finally {
-      setLoading(false);
+      setToggling(false);
     }
-  };
-
-  // بارگذاری سفارش‌ها هنگام mount شدن صفحه؛ خودِ setState ها داخل تابع
-  // async و بعد از await اجرا می‌شوند (نه هم‌زمان با اجرای effect)، این
-  // الگوی متداول «واکشی داده هنگام mount» است.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadOrders();
-  }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    try {
-      const res = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setLoginError(data.error || "ورود ناموفق بود");
-        return;
-      }
-      setPassword("");
-      loadOrders();
-    } catch {
-      setLoginError("ارتباط با سرور برقرار نشد");
-    }
-  };
-
-  const handleStatusChange = async (orderCode: string, status: string) => {
-    setOrders((prev) => prev.map((o) => (o.order_code === orderCode ? { ...o, status: status as StoredOrder["status"] } : o)));
-    await fetch("/api/admin/orders", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderCode, status }),
-    });
-  };
-
-  if (!authed) {
-    return (
-      <div className="max-w-sm mx-auto px-5 pt-32 pb-24">
-        <h1 className="text-2xl font-black mb-6 text-center">ورود مدیریت گرگ</h1>
-        <form onSubmit={handleLogin} className="gorg-card rounded-2xl p-6 space-y-4">
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="رمز عبور"
-            className="w-full bg-[var(--color-charcoal)] border border-white/12 rounded-xl px-4 py-3 text-sm focus:border-[var(--color-ember)] outline-none"
-          />
-          {loginError && <p className="text-sm text-[var(--color-ember-light)]">{loginError}</p>}
-          <button type="submit" className="btn-primary w-full">
-            ورود
-          </button>
-        </form>
-      </div>
-    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-5 pt-28 pb-24">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-black">سفارش‌های گرگ</h1>
-        <button onClick={loadOrders} className="btn-outline text-sm">
-          به‌روزرسانی
-        </button>
+    <>
+      <PageTitle
+        title="داشبورد"
+        sub={fmtLongDay(new Date())}
+        actions={
+          <div className="flex items-center gap-3 panel-card px-4 py-2.5">
+            <span className="text-sm font-bold">سفارش آنلاین سایت</span>
+            <Toggle checked={ordersOpen} onChange={toggleOpen} disabled={toggling} label="باز یا بسته بودن سفارش آنلاین" />
+            <span className={`text-xs font-bold ${ordersOpen ? "text-emerald-300" : "text-red-300"}`}>{ordersOpen ? "باز" : "بسته"}</span>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <Stat label="سفارش‌های امروز" value={fa(today.totals.orders)} sub={today.totals.cancelled ? `${fa(today.totals.cancelled)} لغو شده` : "بدون لغو"} />
+        <Stat label="درآمد امروز" value={moneyShort(today.totals.revenue)} sub={money(today.totals.revenue)} tone="good" />
+        <Stat label="میانگین هر سفارش" value={moneyShort(today.totals.avgTicket)} sub={`${fa(today.totals.itemsSold)} پرس فروخته شد`} />
+        <Stat
+          label="در جریان (نیاز به اقدام)"
+          value={fa(inFlight)}
+          tone={pulse.received > 0 ? "warn" : "default"}
+          sub={`${fa(pulse.received)} جدید · ${fa(pulse.preparing)} در آشپزخانه · ${fa(pulse.ready)} آماده`}
+        />
       </div>
 
-      {loading && <p className="text-[var(--color-ash)]">در حال بارگذاری…</p>}
-      {loadError && <p className="text-[var(--color-ember-light)]">{loadError}</p>}
-      {!loading && orders.length === 0 && !loadError && (
-        <p className="text-[var(--color-ash)]">هنوز سفارشی ثبت نشده.</p>
-      )}
-
-      <div className="space-y-4">
-        {orders.map((order) => (
-          <div key={order.order_code} className="gorg-card rounded-2xl p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <div>
-                <span className="font-black" dir="ltr">{order.order_code}</span>
-                <span className="text-xs text-[var(--color-ash)] mr-3">
-                  {new Date(order.created_at).toLocaleString("fa-IR")}
-                </span>
-              </div>
-              <select
-                value={order.status}
-                onChange={(e) => handleStatusChange(order.order_code, e.target.value)}
-                className="bg-[var(--color-charcoal)] border border-white/12 rounded-lg px-3 py-1.5 text-sm outline-none"
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="text-sm text-[var(--color-ash)] space-y-1 mb-3">
-              <p>
-                <span className="font-bold text-[var(--color-bone)]">{order.name}</span> ·{" "}
-                <span dir="ltr">{order.phone}</span>
-              </p>
-              <p>{order.order_type === "delivery" ? `ارسال: ${order.address}` : "تحویل حضوری"}</p>
-              {order.order_type === "delivery" && order.lat != null && order.lng != null && (
-                <p>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${order.lat},${order.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[var(--color-ember-light)] hover:underline"
-                  >
-                    📍 موقعیت روی نقشه
-                  </a>
-                </p>
-              )}
-              {order.notes && <p>توضیحات: {order.notes}</p>}
-              {order.ref_id && <p>پیگیری بانکی: <span dir="ltr">{order.ref_id}</span></p>}
-            </div>
-
-            <div className="text-sm space-y-1 border-t border-white/10 pt-3">
-              {order.lines.map((line) => (
-                <div key={line.id} className="flex justify-between">
-                  <span>{line.qty}× {line.name}</span>
-                  <span className="text-[var(--color-ash)]">{formatPrice(line.price * line.qty)} تومان</span>
+      <div className="grid lg:grid-cols-3 gap-4 mb-5">
+        <Card title="سایت یا حضوری؟ (امروز)" className="lg:col-span-1">
+          <div className="flex items-center gap-5">
+            <Donut
+              parts={[
+                { value: src("website").orders, color: SOURCE_COLORS.website, label: "سایت" },
+                { value: src("qr").orders, color: SOURCE_COLORS.qr, label: "QR میز" },
+                { value: src("pos").orders, color: SOURCE_COLORS.pos, label: "حضوری" },
+              ]}
+              center={
+                <div>
+                  <p className="text-xl font-black leading-none">{fa(totalSrc)}</p>
+                  <p className="text-[10px] text-[var(--color-ash)] mt-1">سفارش</p>
+                </div>
+              }
+            />
+            <div className="flex-1 space-y-2.5 text-sm">
+              {(
+                [
+                  ["website", "از طریق سایت"],
+                  ["qr", "QR روی میز"],
+                  ["pos", "حضوری (صندوق)"],
+                ] as const
+              ).map(([k, label]) => (
+                <div key={k} className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: SOURCE_COLORS[k] }} />
+                    {label}
+                  </span>
+                  <span className="font-bold">
+                    {fa(src(k).orders)} <span className="text-[11px] text-[var(--color-ash)] font-normal">({moneyShort(src(k).revenue)})</span>
+                  </span>
                 </div>
               ))}
-              <div className="flex justify-between font-extrabold pt-1">
-                <span>جمع کل</span>
-                <span>{formatPrice(order.total)} تومان</span>
-              </div>
             </div>
           </div>
-        ))}
+        </Card>
+
+        <Card title="درآمد ۷ روز اخیر" className="lg:col-span-2" action={<span className="text-xs text-[var(--color-ash)]">جمع: {moneyShort(week.totals.revenue)} تومان</span>}>
+          <BarChart data={dailyBars(week.daily)} highlightLast />
+        </Card>
       </div>
-    </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <Card
+            title="سفارش‌های در جریان"
+            action={
+              <Link href="/admin/orders" className="text-xs font-bold text-[var(--color-ember-light)] hover:underline">
+                همه‌ی سفارش‌ها ←
+              </Link>
+            }
+          >
+            {data.active.length === 0 ? (
+              <Empty text="فعلاً سفارش بازی وجود ندارد 🎉" />
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-3">
+                {data.active.map((o) => (
+                  <OrderCard key={o.order_code} order={o} onOpen={setOpen} onChanged={() => reload(true)} />
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        <div className="space-y-4">
+          <Card title="صندوق" action={<Link href="/admin/cash" className="text-xs font-bold text-[var(--color-ember-light)] hover:underline">مدیریت ←</Link>}>
+            {data.shift ? (
+              <div className="text-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-ash)]">فروش نقد شیفت</span>
+                  <span className="font-bold">{money(data.shift.cashSales)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-ash)]">موجودی مورد انتظار</span>
+                  <span className="font-extrabold text-emerald-300">{money(data.shift.expectedCash)}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--color-ash)] leading-7">شیفت صندوق باز نیست. برای شروعِ کار از بخش صندوق یک شیفت باز کنید.</p>
+            )}
+          </Card>
+
+          <Card title={`هشدار انبار${data.lowStockCount ? ` (${fa(data.lowStockCount)})` : ""}`} action={<Link href="/admin/inventory" className="text-xs font-bold text-[var(--color-ember-light)] hover:underline">انبار ←</Link>}>
+            {data.lowStock.length === 0 ? (
+              <Empty text="موجودی همه‌ی کالاها کافی است ✓" />
+            ) : (
+              <ul className="space-y-2.5 text-sm">
+                {data.lowStock.map((i) => (
+                  <li key={i.id} className="flex items-center justify-between gap-2">
+                    <span>{i.name}</span>
+                    <span className={`font-bold ${i.stock <= 0 ? "text-red-300" : "text-amber-300"}`}>
+                      {i.stock <= 0 ? "تمام شده" : `${fa(i.stock)} ${i.unit}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title="پرفروش‌ترین‌ها (۷ روز)">
+            {week.products.length === 0 ? (
+              <Empty text="هنوز فروشی ثبت نشده" />
+            ) : (
+              <ShareBars rows={week.products.slice(0, 5).map((p) => ({ label: p.name, value: p.qty, sub: `${fa(p.qty)} عدد` }))} />
+            )}
+          </Card>
+        </div>
+      </div>
+
+      <OrderDetail order={open} onClose={() => setOpen(null)} onChanged={() => reload(true)} />
+    </>
   );
 }

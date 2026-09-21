@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { categories } from "@/lib/menuData";
-import { MenuCategoryId } from "@/lib/types";
 
 /**
  * ناوبری دسته‌ها با اسکرول‌اسپای. لینک‌ها anchor واقعی هستند (#grill و...)
  * پس بدون جاوااسکریپت هم کار می‌کنند؛ IntersectionObserver فقط دسته‌ی
  * فعال را هایلایت می‌کند.
  */
-export default function MenuCategoryNav() {
-  const [active, setActive] = useState<MenuCategoryId>("starters");
+export default function MenuCategoryNav({ categories }: { categories: { id: string; label: string }[] }) {
+  const [active, setActive] = useState<string>(categories[0]?.id ?? "");
 
   useEffect(() => {
     const sections = categories
@@ -22,14 +20,14 @@ export default function MenuCategoryNav() {
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible) setActive(visible.target.id as MenuCategoryId);
+        if (visible) setActive(visible.target.id);
       },
       { rootMargin: "-120px 0px -60% 0px", threshold: [0, 0.25, 0.5, 1] }
     );
 
     sections.forEach((s) => observer.observe(s));
     return () => observer.disconnect();
-  }, []);
+  }, [categories]);
 
   return (
     <div className="flex flex-wrap gap-2 mb-10 sticky top-16 z-20 bg-[var(--color-ink)]/90 backdrop-blur-sm py-3 -mx-5 px-5 sm:mx-0 sm:px-0">

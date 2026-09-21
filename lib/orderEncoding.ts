@@ -4,7 +4,7 @@ import { safeEqualHex, signValue } from "@/lib/userAuth";
 export interface EncodedOrder {
   lines: CartLine[];
   total: number;
-  orderType: "delivery" | "pickup";
+  orderType: "delivery" | "pickup" | "dine_in";
   orderCode: string;
   name: string;
   phone: string;
@@ -12,6 +12,11 @@ export interface EncodedOrder {
   notes?: string;
   lat?: number;
   lng?: number;
+  /** جمع اقلام و هزینه‌ی ارسال (total = subtotal + deliveryFee) */
+  subtotal?: number;
+  deliveryFee?: number;
+  /** سفارش با اسکن QR میز */
+  tableNo?: string;
 }
 
 /**

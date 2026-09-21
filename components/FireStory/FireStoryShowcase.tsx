@@ -5,7 +5,6 @@ import { ScrollTrigger } from "@/lib/gsap";
 import { useGsap } from "@/hooks/useGsap";
 import { useCart } from "@/context/CartContext";
 import { ingredientLabels } from "@/lib/ingredientLabels";
-import { getItemById } from "@/lib/menuData";
 import IngredientLabelCard from "./IngredientLabelCard";
 import FrameSequencePlayer, { FrameSequenceHandle } from "./FrameSequencePlayer";
 
@@ -55,7 +54,7 @@ function labelOpacityForProgress(p: number) {
   return 0;
 }
 
-export default function FireStoryShowcase() {
+export default function FireStoryShowcase({ heroItem }: { heroItem?: { id: string; name: string; price: number } }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<FrameSequenceHandle>(null);
   // پیشرفتِ واقعیِ اسکرول (هدف) / پیشرفتِ نمایش‌داده‌شده / سرعتِ آن
@@ -68,8 +67,7 @@ export default function FireStoryShowcase() {
   const [showCta, setShowCta] = useState(false);
   const [device, setDevice] = useState<"desktop" | "mobile" | null>(null);
   const { addItem } = useCart();
-  // آیتم منو که دکمه‌ی زیر انیمیشن به سبد اضافه می‌کند
-  const heroItem = getItemById("bg-1");
+  // heroItem: آیتم منو که دکمه‌ی زیر انیمیشن به سبد اضافه می‌کند (از دیتابیسِ منو می‌آید)
 
   // تشخیص دستگاه فقط سمت کلاینت انجام می‌شود (window در SSR وجود ندارد).
   // این همگام‌سازی با محیط مرورگر است، نه state مشتق‌شده.

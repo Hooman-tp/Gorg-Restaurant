@@ -29,7 +29,9 @@ export async function POST(req: NextRequest) {
     }
 
     const paid = { ...order, refId: verification.refId };
-    const saved = await saveOrder(paid);
+    // «سایت» یا «QR میز»؛ پرداخت همیشه آنلاین است
+    const toSave = { ...paid, source: order.tableNo ? ("qr" as const) : ("website" as const), paymentMethod: "online" as const };
+    const saved = await saveOrder(toSave);
 
     if (saved === "duplicate_payment") {
       return NextResponse.json({ success: false, error: "این پرداخت قبلاً برای سفارش دیگری استفاده شده است" });
