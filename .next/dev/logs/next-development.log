@@ -1,19 +1,9 @@
-{"timestamp":"00:00:05.475","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:08.555","source":"Server","level":"LOG","message":"○ Compiling / ..."}
-{"timestamp":"00:00:35.578","source":"Server","level":"LOG","message":"✓ Finished writing to filesystem cache in 12.2s"}
-{"timestamp":"00:00:35.818","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:00:35.818","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:00:35.818","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:00:35.818","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:00:35.818","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:00:37.832","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:00:37.833","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:00:37.834","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:00:37.835","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:00:37.835","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:00:37.836","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:00:37.836","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:00:37.837","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:00:39.222","source":"Server","level":"LOG","message":"○ Compiling /api/auth/me ..."}
-{"timestamp":"00:02:53.558","source":"Server","level":"LOG","message":"○ Compiling /menu ..."}
-{"timestamp":"00:03:22.927","source":"Server","level":"LOG","message":"✓ Finished filesystem cache database compaction in 19.2s"}
+{"timestamp":"00:00:16.473","source":"Server","level":"WARN","message":"⚠ Slow filesystem detected. The benchmark took 258ms. If D:\\Narm Afzar\\Tarahi Sait\\Tarahi Sait-Restaurant\\Gorg-Restaurant\\.next/dev is a network drive, consider moving it to a local folder.\nSee more: https://nextjs.org/docs/app/guides/local-development"}
+{"timestamp":"00:00:22.823","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:25.898","source":"Server","level":"LOG","message":"○ Compiling / ..."}
+{"timestamp":"00:01:37.260","source":"Server","level":"LOG","message":"✓ Finished writing to filesystem cache in 20.0s"}
+{"timestamp":"00:01:46.665","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:01:46.666","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:01:50.094","source":"Server","level":"LOG","message":"○ Compiling /api/admin/me ..."}
+{"timestamp":"00:02:30.449","source":"Server","level":"LOG","message":"✓ Finished writing to filesystem cache in 10.8s"}
+{"timestamp":"00:02:38.312","source":"Server","level":"LOG","message":"○ Compiling /api/admin/login ..."}

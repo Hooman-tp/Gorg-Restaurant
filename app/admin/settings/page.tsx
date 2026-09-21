@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/adminClient";
 import type { Settings } from "@/lib/settings";
 import { useFetch } from "@/components/admin/hooks";
-import { Card, ErrorBox, Field, Loading, NumInput, PageTitle, Toggle, useToast } from "@/components/admin/ui";
+import { Card, ErrorBox, Field, Loading, NumInput, PageTitle, PasswordField, Toggle, useToast } from "@/components/admin/ui";
 
 interface Data {
   settings: Settings;
@@ -195,27 +195,14 @@ function AccountCard() {
             />
           </Field>
           <Field label="رمز عبور جدید" hint="برای تغییر ندادنِ رمز، خالی بگذارید">
-            <input type="password" autoComplete="new-password" className="panel-input" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            <PasswordField value={newPassword} onChange={setNewPassword} placeholder="" autoComplete="new-password" />
           </Field>
           <Field label="تکرار رمز عبور جدید">
-            <input
-              type="password"
-              autoComplete="new-password"
-              className="panel-input"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
+            <PasswordField value={confirmPassword} onChange={setConfirmPassword} placeholder="" autoComplete="new-password" />
           </Field>
         </div>
         <Field label="رمز عبور فعلی" hint="برای تأیید هر تغییری در این بخش لازم است">
-          <input
-            type="password"
-            required
-            autoComplete="current-password"
-            className="panel-input"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-          />
+          <PasswordField value={currentPassword} onChange={setCurrentPassword} placeholder="" autoComplete="current-password" required />
         </Field>
         <button className="btn-primary btn-sm disabled:opacity-60" disabled={busy || !currentPassword} onClick={save}>
           {busy ? "در حال ذخیره…" : "ذخیره‌ی حساب کاربری"}

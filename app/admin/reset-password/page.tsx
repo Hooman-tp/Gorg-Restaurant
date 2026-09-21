@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/adminClient";
+import { PasswordField } from "@/components/admin/ui";
 
 function ResetForm() {
   const router = useRouter();
@@ -63,23 +64,19 @@ function ResetForm() {
         placeholder="نام کاربری جدید"
         className="panel-input"
       />
-      <input
-        type="password"
-        required
-        autoComplete="new-password"
+      <PasswordField
         value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={setPassword}
         placeholder="رمز عبور جدید (حداقل ۸ کاراکتر)"
-        className="panel-input"
-      />
-      <input
-        type="password"
-        required
         autoComplete="new-password"
+        required
+      />
+      <PasswordField
         value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
+        onChange={setConfirmPassword}
         placeholder="تکرار رمز عبور جدید"
-        className="panel-input"
+        autoComplete="new-password"
+        required
       />
       {error && <p className="text-sm text-[var(--color-ember-light)]">{error}</p>}
       <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-60">

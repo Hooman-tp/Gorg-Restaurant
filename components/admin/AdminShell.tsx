@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api, beep, fa, unlockAudio } from "@/lib/adminClient";
-import { ToastProvider, useToast } from "./ui";
+import { ToastProvider, useToast, PasswordField } from "./ui";
 
 interface Pulse {
   latestId: number;
@@ -139,14 +139,12 @@ function LoginForm({ onDone }: { onDone: () => void }) {
               placeholder="نام کاربری"
               className="panel-input"
             />
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
+            <PasswordField
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               placeholder="رمز عبور"
-              className="panel-input"
+              autoComplete="current-password"
+              required
             />
             {error && <p className="text-sm text-[var(--color-ember-light)]">{error}</p>}
             <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-60">
@@ -245,7 +243,13 @@ function Shell({
 
   return (
     <AdminCtx.Provider value={{ pulse, businessName, soundOn, username }}>
-      <div className="min-h-screen bg-[var(--color-ink)]">
+      <div className="relative min-h-screen bg-[var(--color-ink)]">
+        <div
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url(/images/gorg-poster-full.jpg)" }}
+          aria-hidden="true"
+        />
+        <div className="fixed inset-0 -z-10 bg-[var(--color-ink)]/88" aria-hidden="true" />
         <header className="brand-texture-soft border-b border-white/8">
           <div className="max-w-6xl mx-auto px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
             <Link href="/admin" className="flex items-center gap-2.5 min-w-0">
@@ -322,16 +326,31 @@ function Shell({
 
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [state, setState] = useState<"loading" | "out" | "in">("loading");
+  const cached = typeof window !== "undefined" ? sessionStorage.getItem("gorg-admin-meta") : null;
+  const [state, setState] = useState<"loading" | "out" | "in">(cached ? "in" : "loading");
   const [meta, setMeta] = useState({ businessName: "رستوران گرگ", username: "", dbConfigured: true });
+
+  useEffect(() => {
+    if (cached) {
+      try {
+        setMeta(JSON.parse(cached));
+      } catch {
+        /* نادیده گرفته می‌شود */
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const check = useCallback(async () => {
     try {
       const r = await api<{ businessName: string; username: string; dbConfigured: boolean }>("/api/admin/me");
-      setMeta({ businessName: r.businessName, username: r.username, dbConfigured: r.dbConfigured });
+      const next = { businessName: r.businessName, username: r.username, dbConfigured: r.dbConfigured };
+      setMeta(next);
       setState("in");
+      sessionStorage.setItem("gorg-admin-meta", JSON.stringify(next));
     } catch {
       setState("out");
+      sessionStorage.removeItem("gorg-admin-meta");
     }
   }, []);
 
@@ -345,6 +364,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
+    sessionStorage.removeItem("gorg-admin-meta");
     setState("out");
   }
 

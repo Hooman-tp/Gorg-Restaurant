@@ -341,6 +341,14 @@ html.lenis body {
 .panel-input:focus {
   border-color: var(--color-ember);
 }
+/* آیکونِ داخلیِ مرورگر برای نمایش رمز خاموش می‌شود؛ دکمه‌ی چشمِ خودِ سایت جایگزین آن است */
+.panel-input::-ms-reveal,
+.panel-input::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none;
+}
 .panel-input::placeholder {
   color: rgba(168, 148, 144, 0.7);
 }

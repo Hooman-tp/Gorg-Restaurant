@@ -13,6 +13,54 @@ interface ToastItem {
 const ToastCtx = createContext<(text: string, kind?: ToastKind) => void>(() => {});
 export const useToast = () => useContext(ToastCtx);
 
+/* ───────── فیلد رمز عبور با دکمه‌ی نمایش/مخفی ───────── */
+export function PasswordField({
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+  required,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  autoComplete?: string;
+  required?: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={visible ? "text" : "password"}
+        required={required}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="panel-input pl-10"
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "مخفی کردن رمز عبور" : "نمایش رمز عبور"}
+        tabIndex={-1}
+        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-ash)] hover:text-[var(--color-bone)] p-1"
+      >
+        {visible ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M2 2l20 20M9.9 9.9a3 3 0 0 0 4.2 4.2M6.5 6.7C4.2 8.2 2.5 10.3 1 12c1.7 2.4 5.5 7 11 7 1.8 0 3.4-.5 4.8-1.2M17.9 17.9C19.9 16.5 21.4 14.4 23 12c-2-3.9-6-7-11-7-1 0-2 .1-2.9.4" />
+          </svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
   const push = useCallback((text: string, kind: ToastKind = "ok") => {

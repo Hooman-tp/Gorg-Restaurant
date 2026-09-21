@@ -1,5 +1,9 @@
 {
+  "/admin/page": "app/admin/page.js",
+  "/api/admin/login/route": "app/api/admin/login/route.js",
+  "/api/admin/me/route": "app/api/admin/me/route.js",
   "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/gallery/page": "app/gallery/page.js",
   "/menu/page": "app/menu/page.js",
   "/page": "app/page.js"
 }

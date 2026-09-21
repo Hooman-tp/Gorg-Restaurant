@@ -604,6 +604,10 @@
     left: 50%;
   }
 
+  .left-2\.5 {
+    left: calc(var(--spacing) * 2.5);
+  }
+
   .left-3 {
     left: calc(var(--spacing) * 3);
   }
@@ -618,6 +622,10 @@
 
   .left-5 {
     left: calc(var(--spacing) * 5);
+  }
+
+  .-z-10 {
+    z-index: calc(10 * -1);
   }
 
   .z-0 {
@@ -1903,6 +1911,16 @@
     }
   }
 
+  .bg-\[var\(--color-ink\)\]\/88 {
+    background-color: #0d0403e0;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-\[var\(--color-ink\)\]\/88 {
+      background-color: color-mix(in oklab, var(--color-ink) 88%, transparent);
+    }
+  }
+
   .bg-\[var\(--color-ink\)\]\/90 {
     background-color: #0d0403e6;
   }
@@ -2277,6 +2295,18 @@
     --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
   }
 
+  .bg-cover {
+    background-size: cover;
+  }
+
+  .bg-center {
+    background-position: center;
+  }
+
+  .bg-no-repeat {
+    background-repeat: no-repeat;
+  }
+
   .object-contain {
     object-fit: contain;
   }
@@ -2287,6 +2317,10 @@
 
   .object-center {
     object-position: center;
+  }
+
+  .p-1 {
+    padding: var(--spacing);
   }
 
   .p-2 {
@@ -2479,6 +2513,10 @@
 
   .pb-24 {
     padding-bottom: calc(var(--spacing) * 24);
+  }
+
+  .pl-10 {
+    padding-left: calc(var(--spacing) * 10);
   }
 
   .text-center {
@@ -4016,6 +4054,18 @@ html.lenis, html.lenis body {
 
 .panel-input:focus {
   border-color: var(--color-ember);
+}
+
+.panel-input::-ms-reveal {
+  display: none;
+}
+
+.panel-input::-ms-clear {
+  display: none;
+}
+
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none;
 }
 
 .panel-input::placeholder {

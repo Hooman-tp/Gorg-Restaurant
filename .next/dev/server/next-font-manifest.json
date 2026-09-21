@@ -1,5 +1,7 @@
 {
   "app": {
+    "[project]/app/admin/page": [],
+    "[project]/app/gallery/page": [],
     "[project]/app/menu/page": [],
     "[project]/app/page": []
   },
