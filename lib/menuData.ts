@@ -204,7 +204,7 @@ export const menuItems: MenuItem[] = [
     name: "آبجو کلاسیک روسی",
     description: "آبجوی روسی بدون الکل با طعم کلاسیک؛ سرد سرو می‌شود.",
     price: 40000,
-    image: "/images/menu/drink-beer-classic.jpg",
+    image: "/images/menu/drink-beer-classic-blamberg.jpg",
   },
   {
     id: "dr-2",
@@ -212,14 +212,14 @@ export const menuItems: MenuItem[] = [
     name: "آب معدنی",
     description: "آب معدنی خنک.",
     price: 35000,
-    image: "/images/menu/drink-mineral-water.jpg",
+    image: "/images/menu/drink-mineral-water-royal-star.jpg",
   },
   {
     id: "dr-3",
     category: "drinks",
     name: "اسپرایت",
     description: "اسپرایت خنک و لیمویی، در قوطی.",
-    price: 10000,
+    price: 100000,
     image: "/images/menu/drink-sprite.jpg",
   },
   {
@@ -227,7 +227,7 @@ export const menuItems: MenuItem[] = [
     category: "drinks",
     name: "فانتا",
     description: "فانتای پرتقالی خنک، در قوطی.",
-    price: 10000,
+    price: 100000,
     image: "/images/menu/drink-fanta.jpg",
   },
   {
@@ -235,7 +235,7 @@ export const menuItems: MenuItem[] = [
     category: "drinks",
     name: "کوکاکولا زیرو",
     description: "کوکاکولا بدون قند، خنک و در قوطی.",
-    price: 10000,
+    price: 100000,
     image: "/images/menu/drink-cola-zero.jpg",
   },
   {
@@ -243,7 +243,7 @@ export const menuItems: MenuItem[] = [
     category: "drinks",
     name: "کوکاکولا",
     description: "کوکاکولای کلاسیک، خنک و در قوطی؛ رفیق همیشگی برگر.",
-    price: 10000,
+    price: 100000,
     image: "/images/menu/drink-cola.jpg",
   },
 ];

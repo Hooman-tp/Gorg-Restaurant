@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api, beep, fa, unlockAudio } from "@/lib/adminClient";
 import { ToastProvider, useToast, PasswordField } from "./ui";
+import DesignerCredit from "@/components/DesignerCredit";
 
 interface Pulse {
   latestId: number;
@@ -159,6 +160,9 @@ function LoginForm({ onDone }: { onDone: () => void }) {
             </button>
           </form>
         )}
+        <div className="mt-6 flex justify-center">
+          <DesignerCredit />
+        </div>
       </div>
     </div>
   );
@@ -319,6 +323,10 @@ function Shell({
             children
           )}
         </main>
+
+        <footer className="border-t border-white/8 py-4 flex justify-center">
+          <DesignerCredit />
+        </footer>
       </div>
     </AdminCtx.Provider>
   );

@@ -393,3 +393,471 @@ select.panel-input option {
 @media (prefers-reduced-motion: reduce) {
   .panel-pulse { animation: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   افکت‌های هاور و تعامل (دسکتاپ) — کارت غذا، تصاویر گالری، دسته‌ها
+   همه‌ی افکت‌های «ماوس» داخل (hover: hover) and (pointer: fine) هستند،
+   پس روی موبایل هیچ اثری ندارند و باعث «گیر کردنِ هاور» بعد از لمس نمی‌شوند.
+   ══════════════════════════════════════════════════════════════════ */
+
+@property --fx-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes fx-spin {
+  to { --fx-angle: 360deg; }
+}
+@keyframes fx-shine {
+  from { transform: translateX(-140%) skewX(-18deg); }
+  to { transform: translateX(240%) skewX(-18deg); }
+}
+@keyframes ember-rise {
+  0% { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
+  15% { opacity: 0.95; }
+  100% { transform: translate3d(var(--x, 10px), -170px, 0) scale(0.2); opacity: 0; }
+}
+@keyframes chili-wiggle {
+  0%, 100% { transform: rotate(0) scale(1); }
+  25% { transform: rotate(-14deg) scale(1.25); }
+  60% { transform: rotate(10deg) scale(1.2); }
+}
+
+/* پایه‌ی کارت‌های تیلت‌دار */
+.fx-tilt {
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translate3d(0, 0, 0);
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.3s ease, box-shadow 0.4s ease;
+  will-change: transform;
+}
+
+/* ── کارت غذا ── */
+.dish-card {
+  isolation: isolate;
+}
+.dish-media {
+  background: #fff;
+}
+.dish-img {
+  transition: transform 1.1s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.6s ease;
+}
+.dish-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 55%, rgba(13, 4, 3, 0.45) 100%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.dish-shine {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+  transform: translateX(-140%) skewX(-18deg);
+  mix-blend-mode: soft-light;
+}
+.dish-embers {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  pointer-events: none;
+}
+.dish-embers i {
+  position: absolute;
+  bottom: -8px;
+  left: var(--l);
+  width: var(--s, 4px);
+  height: var(--s, 4px);
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe2b8 0%, var(--color-ember-light) 55%, transparent 72%);
+  opacity: 0;
+}
+.dish-price {
+  display: inline-block;
+  transform-origin: right center;
+  transition: transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1), text-shadow 0.4s ease, color 0.3s ease;
+}
+.dish-title {
+  transition: color 0.3s ease, letter-spacing 0.4s ease;
+}
+.dish-add {
+  transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.3s ease, transform 0.25s ease;
+}
+.dish-add:active {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fx-tilt:hover {
+    transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translate3d(0, -8px, 0);
+    border-color: rgba(221, 74, 52, 0.55);
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.6), 0 0 42px rgba(221, 74, 52, 0.18);
+  }
+  .fx-tilt:not(:hover) {
+    transition-duration: 0.6s, 0.3s, 0.4s;
+  }
+
+  /* قابِ نوریِ چرخان دورِ کارت */
+  .dish-card::before,
+  .gallery-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    border-radius: inherit;
+    padding: 2px;
+    background: conic-gradient(from var(--fx-angle), transparent 0 55%, var(--color-ember) 78%, #ffb493 88%, transparent 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s ease;
+    animation: fx-spin 3.2s linear infinite;
+  }
+  .dish-card:hover::before,
+  .gallery-tile:hover::before {
+    opacity: 1;
+  }
+
+  /* نورِ آتشین که زیرِ ماوس می‌آید */
+  .dish-card::after,
+  .gallery-tile::after,
+  .cat-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), rgba(241, 106, 79, 0.2), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .dish-card:hover::after,
+  .gallery-tile:hover::after,
+  .cat-card:hover::after {
+    opacity: 1;
+  }
+
+  .dish-card:hover .dish-img {
+    transform: scale(1.11) rotate(-1.2deg);
+    filter: saturate(1.12) contrast(1.03);
+  }
+  .dish-card:hover .dish-shade {
+    opacity: 1;
+  }
+  .dish-card:hover .dish-shine {
+    animation: fx-shine 1.1s 0.05s ease-out 1;
+  }
+  .dish-card:hover .dish-embers i {
+    animation: ember-rise var(--t, 2.2s) var(--d, 0s) ease-out infinite;
+  }
+  .dish-card:hover .dish-title {
+    color: var(--color-ember-light);
+  }
+  .dish-card:hover .dish-price {
+    transform: scale(1.12);
+    color: #fff;
+    text-shadow: 0 0 18px rgba(241, 106, 79, 0.7);
+  }
+  .dish-card:hover .dish-chili {
+    animation: chili-wiggle 0.9s ease-in-out infinite;
+  }
+  .dish-card:hover .dish-add {
+    background: var(--color-ember);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(221, 74, 52, 0.45);
+  }
+}
+
+/* لمس (موبایل): فقط یک فشردنِ کوچک، بدون هاورِ چسبنده */
+@media (hover: none) {
+  .dish-card:active,
+  .gallery-tile:active,
+  .cat-card:active {
+    transform: scale(0.985);
+  }
+}
+
+/* ── تصاویر گالری ── */
+.gallery-tile {
+  isolation: isolate;
+  cursor: zoom-in;
+}
+.gallery-tile img {
+  transition: transform 1.1s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.6s ease;
+}
+.gt-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(13, 4, 3, 0.05) 30%, rgba(13, 4, 3, 0.7) 100%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.gt-shine {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%);
+  transform: translateX(-140%) skewX(-18deg);
+  mix-blend-mode: soft-light;
+}
+.gt-frame {
+  position: absolute;
+  inset: 12px;
+  z-index: 4;
+  pointer-events: none;
+  border: 1.5px solid rgba(245, 237, 231, 0.85);
+  border-radius: 8px;
+  opacity: 0;
+  transform: scale(1.12);
+  transition: opacity 0.45s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.gt-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 4;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-ember), var(--color-blood));
+  box-shadow: 0 10px 30px rgba(221, 74, 52, 0.55);
+  opacity: 0;
+  transform: scale(0.4) rotate(-90deg);
+  transition: opacity 0.35s ease, transform 0.6s cubic-bezier(0.3, 1.5, 0.5, 1);
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .gallery-tile:hover img {
+    transform: scale(1.13) rotate(-1.4deg);
+    filter: saturate(1.15) contrast(1.05);
+  }
+  .gallery-tile:hover .gt-shade {
+    opacity: 1;
+  }
+  .gallery-tile:hover .gt-shine {
+    animation: fx-shine 1.1s 0.05s ease-out 1;
+  }
+  .gallery-tile:hover .gt-frame {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .gallery-tile:hover .gt-icon {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+/* ── کارت دسته‌های منو (صفحه‌ی اصلی) ── */
+.cat-card {
+  isolation: isolate;
+  overflow: hidden;
+}
+.cat-icon {
+  display: inline-block;
+  transition: transform 0.6s cubic-bezier(0.3, 1.6, 0.5, 1), filter 0.4s ease;
+}
+.cat-bar {
+  position: absolute;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  z-index: 6;
+  background: linear-gradient(90deg, transparent, var(--color-ember), transparent);
+  transform: scaleX(0);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cat-card:hover .cat-icon {
+    transform: translateY(-6px) scale(1.3) rotate(-8deg);
+    filter: drop-shadow(0 10px 14px rgba(221, 74, 52, 0.55));
+  }
+  .cat-card:hover .cat-bar {
+    transform: scaleX(1);
+  }
+  .cat-card:hover .cat-label {
+    color: var(--color-ember-light);
+  }
+}
+.cat-label {
+  transition: color 0.3s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   لایه‌های تزئینیِ انیمیشن‌های اسکرولِ صفحه‌ی اصلی
+   ══════════════════════════════════════════════════════════════════ */
+.fx-blob {
+  position: absolute;
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(221, 74, 52, 0.2) 0%, rgba(140, 42, 36, 0.1) 40%, transparent 68%);
+  will-change: transform;
+}
+.fx-bgword {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  font-size: clamp(8rem, 30vw, 26rem);
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(221, 74, 52, 0.16);
+  will-change: transform;
+}
+.fx-rule {
+  display: block;
+  height: 2px;
+  width: 92px;
+  border-radius: 2px;
+  background: linear-gradient(270deg, var(--color-ember), rgba(221, 74, 52, 0));
+  box-shadow: 0 0 14px rgba(221, 74, 52, 0.6);
+  transform-origin: right center;
+}
+.fx-divider-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-ember), transparent);
+  box-shadow: 0 0 18px rgba(221, 74, 52, 0.7);
+  transform-origin: center;
+}
+.fx-embers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.fx-embers i {
+  position: absolute;
+  bottom: -12px;
+  left: var(--l);
+  width: var(--s, 4px);
+  height: var(--s, 4px);
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe2b8 0%, var(--color-ember-light) 55%, transparent 72%);
+  opacity: 0;
+  animation: fx-float var(--t, 9s) var(--d, 0s) linear infinite;
+  will-change: transform, opacity;
+}
+.fx-embers:not(.is-live) i {
+  animation-play-state: paused;
+}
+@keyframes fx-float {
+  0% { transform: translate3d(0, 0, 0) scale(0.7); opacity: 0; }
+  12% { opacity: 0.85; }
+  70% { opacity: 0.5; }
+  100% { transform: translate3d(var(--x, 20px), -820px, 0) scale(0.2); opacity: 0; }
+}
+@media (max-width: 767px) {
+  .fx-embers i:nth-child(n + 7) {
+    display: none;
+  }
+  .fx-blob {
+    width: 380px;
+    height: 380px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-embers,
+  .dish-embers {
+    display: none;
+  }
+  .fx-tilt,
+  .fx-tilt:hover {
+    transform: none;
+  }
+  .dish-img,
+  .gallery-tile img {
+    transition: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   نمای بزرگِ گالری (لایت‌باکس): کشیدنِ انگشت، بستن با کشیدن به پایین
+   ══════════════════════════════════════════════════════════════════ */
+@keyframes lb-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes lb-hint {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+.lb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(8, 3, 2, var(--bgo, 0.95));
+  transition: background-color 0.15s linear;
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  animation: lb-fade 0.25s ease-out both;
+}
+.lb-track {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, var(--dy, 0px), 0) scale(var(--sc, 1));
+  will-change: transform;
+}
+.lb-slide {
+  position: absolute;
+  inset: 0;
+  padding: 64px 12px;
+  will-change: transform;
+}
+@media (min-width: 640px) {
+  .lb-slide {
+    padding: 64px 72px;
+  }
+}
+.lb-slide img {
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+.lb-anim,
+.lb-anim > .lb-slide {
+  transition: transform 0.32s cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+.lb-arrow {
+  display: flex;
+}
+@media (pointer: coarse) {
+  .lb-arrow {
+    display: none;
+  }
+}
+.lb-hint {
+  animation: lb-fade 0.4s ease-out both;
+}
+.lb-hint span {
+  display: inline-block;
+  animation: lb-hint 1.4s ease-in-out 2;
+}

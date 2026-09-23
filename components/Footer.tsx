@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import InstagramIcon from "./InstagramIcon";
+import DesignerCredit from "./DesignerCredit";
 import { ADDRESS, INSTAGRAM_ID, INSTAGRAM_URL, PHONE_DISPLAY, PHONE_TEL } from "@/lib/contact";
 
 const LINKS = [
@@ -64,8 +65,9 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/8 py-5 text-center text-xs text-[var(--color-ash)]">
-        © {new Date().getFullYear()} رستوران گرگ. تمام حقوق محفوظ است.
+      <div className="border-t border-white/8 py-5 flex flex-col items-center gap-1.5 text-center text-xs text-[var(--color-ash)]">
+        <span>© {new Date().getFullYear()} رستوران گرگ. تمام حقوق محفوظ است.</span>
+        <DesignerCredit />
       </div>
     </footer>
   );

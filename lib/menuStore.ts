@@ -48,12 +48,39 @@ export function invalidateMenuCache() {
   cache = null;
 }
 
+/**
+ * اصلاح‌های یک‌بارمصرف برای منویی که قبلاً وارد دیتابیس شده است (هر اصلاح فقط یک‌بار اجرا می‌شود
+ * و اگر بعداً مدیر از پنل چیزی را دستی تغییر دهد، دوباره رویش نوشته نمی‌شود).
+ *  ۱) قیمت اسپرایت، فانتا، کوکاکولا زیرو و کوکاکولا: ۱۰٬۰۰۰ ← ۱۰۰٬۰۰۰ تومان
+ *  ۲) عکس جدید آبجوی کلاسیک روسی و آب معدنی
+ */
+async function applyMenuFixes(): Promise<void> {
+  const flag = await dbQuery("SELECT 1 FROM site_settings WHERE key = 'menu_fix_drinks_2026_09'");
+  if (flag.length > 0) return;
+  await dbQuery(
+    "UPDATE menu_items SET price = 100000 WHERE id IN ('dr-3','dr-4','dr-5','dr-6') AND price = 10000"
+  );
+  await dbQuery(
+    "UPDATE menu_items SET image = '/images/menu/drink-beer-classic-blamberg.jpg' WHERE image = '/images/menu/drink-beer-classic.jpg'"
+  );
+  await dbQuery(
+    "UPDATE menu_items SET image = '/images/menu/drink-mineral-water-royal-star.jpg' WHERE image = '/images/menu/drink-mineral-water.jpg'"
+  );
+  await dbQuery(
+    "INSERT INTO site_settings (key, value) VALUES ('menu_fix_drinks_2026_09', '1') ON CONFLICT (key) DO NOTHING"
+  );
+  invalidateMenuCache();
+}
+
 /** اولین بار منوی استاتیک را وارد دیتابیس می‌کند (فقط یک‌بار؛ حتی اگر بعداً همه‌چیز پاک شود دوباره پر نمی‌شود) */
 async function seedIfNeeded(): Promise<void> {
   if (!seedPromise) {
     seedPromise = (async () => {
       const done = await dbQuery("SELECT 1 FROM site_settings WHERE key = 'menu_seeded'");
-      if (done.length > 0) return;
+      if (done.length > 0) {
+        await applyMenuFixes();
+        return;
+      }
       const existing = await dbQuery("SELECT 1 FROM menu_items LIMIT 1");
       if (existing.length === 0) {
         let order = 0;
@@ -73,6 +100,7 @@ async function seedIfNeeded(): Promise<void> {
         }
       }
       await dbQuery("INSERT INTO site_settings (key, value) VALUES ('menu_seeded', '1') ON CONFLICT (key) DO NOTHING");
+      await applyMenuFixes();
     })().catch((err) => {
       seedPromise = null;
       throw err;
