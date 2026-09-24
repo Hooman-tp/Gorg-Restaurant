@@ -1,0 +1,22 @@
+{"timestamp":"00:00:35.424","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:01:09.915","source":"Server","level":"LOG","message":"○ Compiling / ..."}
+{"timestamp":"00:02:19.586","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:02:20.260","source":"Server","level":"LOG","message":"✓ Finished writing to filesystem cache in 28.0s"}
+{"timestamp":"00:02:20.303","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:02:23.614","source":"Server","level":"LOG","message":"○ Compiling /api/admin/me ..."}
+{"timestamp":"00:02:59.217","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:02:59.468","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
+{"timestamp":"00:02:59.600","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
+{"timestamp":"00:02:59.600","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
+{"timestamp":"00:02:59.913","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
+{"timestamp":"00:02:59.914","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
+{"timestamp":"00:02:59.916","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
+{"timestamp":"00:02:59.916","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
+{"timestamp":"00:02:59.917","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
+{"timestamp":"00:02:59.918","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
+{"timestamp":"00:02:59.919","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
+{"timestamp":"00:02:59.920","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
+{"timestamp":"00:02:59.921","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
+{"timestamp":"00:02:59.923","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
+{"timestamp":"00:02:59.924","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
+{"timestamp":"00:02:59.925","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
