@@ -65,7 +65,7 @@ export default async function HomePage() {
               گرگ
             </h1>
             <p className="text-xl sm:text-2xl font-bold text-[var(--color-bone)] mb-4">
-              به غریزه‌ات اعتماد کن.
+              به غریزه‌ات اعتماد کن
             </p>
             <p className="text-[var(--color-ash)] leading-8 mb-8 max-w-lg">
               برگر، ساندویچ بریسکت، مرغ سوخاری نشویل، بال و سیب‌زمینی؛
