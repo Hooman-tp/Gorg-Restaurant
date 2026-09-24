@@ -18,7 +18,6 @@ export default function HomeScrollFX() {
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const q = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) =>
         gsap.utils.toArray<T>(sel, root as Element);
-      const isMobile = window.matchMedia("(max-width: 767px)").matches;
       const replay = "play none none reverse";
 
       // ── ۱) معرفی کوتاه: کلمه‌ها با اسکرول روشن می‌شوند ──
@@ -116,7 +115,13 @@ export default function HomeScrollFX() {
           tl.fromTo(
             media,
             { clipPath: "inset(100% 0% 0% 0%)" },
-            { clipPath: "inset(0% 0% 0% 0%)", duration: 1.1, ease: "power4.out" },
+            {
+              clipPath: "inset(0% 0% 0% 0%)",
+              duration: 1.1,
+              ease: "power4.out",
+              // بعد از باز شدن، clip-path پاک می‌شود؛ وگرنه مرورگر تا آخرِ اسکرول عکسِ در حالِ حرکت را ماسک می‌کند و کند می‌شود
+              onComplete: () => gsap.set(media, { clearProps: "clipPath" }),
+            },
             0.12
           );
         }
@@ -134,7 +139,7 @@ export default function HomeScrollFX() {
             yPercent: 8,
             scale: 1.2,
             ease: "none",
-            scrollTrigger: { trigger: card, start: "top bottom", end: "bottom top", scrub: isMobile ? true : 0.6 },
+            scrollTrigger: { trigger: card, start: "top bottom", end: "bottom top", scrub: true },
           }
         );
       });
