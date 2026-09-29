@@ -10,11 +10,20 @@ import {
   verifyPassword,
 } from "@/lib/adminUsers";
 import { dbQuery, isDbConfigured } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const GENERIC_ERROR = "نام کاربری یا رمز عبور اشتباه است";
 
 function setCookie(username: string) {
   const token = createAdminToken(username);
+  if (!token) {
+    // ADMIN_SESSION_SECRET/ADMIN_PASSWORD تنظیم نشده — بدون کلیدِ امضا
+    // هیچ نشستی صادر نمی‌شود (به‌جای صدورِ کوکی با کلیدِ حدس‌زدنی)
+    return NextResponse.json(
+      { error: "پیکربندی امنیتیِ پنل کامل نیست (ADMIN_SESSION_SECRET را در تنظیمات هاست تنظیم کنید)" },
+      { status: 503 }
+    );
+  }
   const res = NextResponse.json({ ok: true, username });
   res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
@@ -29,6 +38,17 @@ function setCookie(username: string) {
 export async function POST(req: NextRequest) {
   if (!isDbConfigured()) {
     return NextResponse.json({ error: "دیتابیس هنوز وصل نشده (DATABASE_URL)" }, { status: 503 });
+  }
+
+  // ─── محدودسازیِ نرخ برای کلِ مسیر، پیش از هر بررسیِ رمز — شاملِ رمزِ
+  //     اضطراری/هاست هم می‌شود، چون آن مسیر با قفلِ per-account محافظت
+  //     نمی‌شود و بدون این محدودیت قابلِ حدس‌زدنِ بی‌نهایت بود ───
+  const rl = await checkRateLimit(req, "admin-login", 10, 15);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "تعداد تلاش‌های ورود بیش از حد مجاز بود. چند دقیقه دیگر دوباره تلاش کنید." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
   }
 
   let body: { username?: string; password?: string };

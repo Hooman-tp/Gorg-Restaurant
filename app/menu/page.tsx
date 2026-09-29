@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "منو",
   description: "منوی کامل رستوران گرگ: پیش‌غذا، سالاد، برگر، بریسکت، نشویل و نوشیدنی.",
+  alternates: { canonical: "/menu" },
 };
 
 async function findTable(code: string | undefined) {

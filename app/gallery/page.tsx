@@ -5,6 +5,7 @@ import GalleryGrid from "@/components/GalleryGrid";
 export const metadata: Metadata = {
   title: "گالری",
   description: "نمایی از غذاها و فضای رستوران گرگ.",
+  alternates: { canonical: "/gallery" },
 };
 
 // گالری از دیتابیس (پنل مدیریت) می‌آید؛ نباید در زمان build ثابت بماند

@@ -60,10 +60,15 @@ var __TURBOPACK__imported__module__$5b$externals$5d2f$crypto__$5b$external$5d$__
 ;
 const COOKIE_NAME = "gorg_admin";
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // ۷ روز
-function getSecret() {
-    // اگر ADMIN_SESSION_SECRET تنظیم نشده باشد، از خودِ رمز ادمین به‌عنوان
-    // کلید امضا استفاده می‌شود (کافی است چون فقط برای همین سایت است)
-    return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "gorg-fallback-secret";
+/**
+ * کلیدِ امضای نشست فقط از متغیرهای محیطی خوانده می‌شود؛ هیچ کلیدِ
+ * پیش‌فرضِ ثابتی در کد وجود ندارد (دقیقاً همان اصلی که lib/userAuth.ts
+ * برای امضای OTP رعایت می‌کند). اگر هیچ‌کدام تنظیم نشده باشد، به‌جای
+ * استفاده‌ی خاموش از یک رشته‌ی حدس‌زدنیِ عمومی — که هر کسی می‌تواند با آن
+ * برای هر نام‌کاربری‌ای یک کوکیِ ادمینِ جعلی بسازد — ورود کاملاً غیرفعال
+ * می‌شود.
+ */ function getSecret() {
+    return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || null;
 }
 function isAdminConfigured() {
     return Boolean(process.env.ADMIN_PASSWORD);
@@ -77,19 +82,23 @@ function checkAdminPassword(password) {
     return (0, __TURBOPACK__imported__module__$5b$externals$5d2f$crypto__$5b$external$5d$__$28$crypto$2c$__cjs$29$__["timingSafeEqual"])(a, b);
 }
 function createAdminToken(username) {
+    const secret = getSecret();
+    if (!secret) return null;
     const ts = Date.now().toString();
     const u = Buffer.from(username, "utf8").toString("base64url");
-    const sig = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$crypto__$5b$external$5d$__$28$crypto$2c$__cjs$29$__["createHmac"])("sha256", getSecret()).update(`${u}.${ts}`).digest("hex");
+    const sig = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$crypto__$5b$external$5d$__$28$crypto$2c$__cjs$29$__["createHmac"])("sha256", secret).update(`${u}.${ts}`).digest("hex");
     return `${u}.${ts}.${sig}`;
 }
 function verifyAdminToken(token) {
     if (!token) return null;
+    const secret = getSecret();
+    if (!secret) return null;
     const parts = token.split(".");
     if (parts.length !== 3) return null;
     const [u, ts, sig] = parts;
     if (!u || !ts || !sig) return null;
     if (!Number.isFinite(Number(ts)) || Date.now() - Number(ts) > MAX_AGE_MS) return null;
-    const expected = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$crypto__$5b$external$5d$__$28$crypto$2c$__cjs$29$__["createHmac"])("sha256", getSecret()).update(`${u}.${ts}`).digest("hex");
+    const expected = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$crypto__$5b$external$5d$__$28$crypto$2c$__cjs$29$__["createHmac"])("sha256", secret).update(`${u}.${ts}`).digest("hex");
     try {
         if (!(0, __TURBOPACK__imported__module__$5b$externals$5d2f$crypto__$5b$external$5d$__$28$crypto$2c$__cjs$29$__["timingSafeEqual"])(Buffer.from(sig), Buffer.from(expected))) return null;
     } catch  {
@@ -119,7 +128,7 @@ function verifyAdminToken(token) {
     "SCHEMA_VERSION",
     ()=>SCHEMA_VERSION
 ]);
-const SCHEMA_VERSION = "2026-09-panel-2";
+const SCHEMA_VERSION = "2026-09-panel-3-security";
 const DDL = [
     // ─── جدول‌های پایه (اگر قبلاً با schema.sql ساخته شده باشند، تغییری نمی‌کنند) ───
     `CREATE TABLE IF NOT EXISTS orders (
@@ -294,7 +303,36 @@ const DDL = [
     used BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
-    `CREATE INDEX IF NOT EXISTS idx_admin_resets_username ON admin_password_resets(username)`
+    `CREATE INDEX IF NOT EXISTS idx_admin_resets_username ON admin_password_resets(username)`,
+    // ─── ورود مشتری با کد پیامکی (OTP) — این دو جدول را کدِ app/api/auth/*
+    //     همیشه لازم داشته اما تا این نسخه هیچ‌جا ساخته نمی‌شدند؛ بدون این‌ها
+    //     ورود با موبایل (و در نتیجه کل فرایند سفارش/پرداخت) با خطای دیتابیس
+    //     شکست می‌خورد ───
+    `CREATE TABLE IF NOT EXISTS otp_codes (
+    phone VARCHAR(11) PRIMARY KEY,
+    code_hash VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    send_count INTEGER NOT NULL DEFAULT 1,
+    window_start TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+    `CREATE TABLE IF NOT EXISTS otp_requests (
+    id SERIAL PRIMARY KEY,
+    ip VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+    `CREATE INDEX IF NOT EXISTS idx_otp_requests_ip_time ON otp_requests(ip, created_at)`,
+    // ─── محدودکردن نرخِ درخواست برای مسیرهای عمومیِ در معرض سوءاستفاده
+    //     (فرم تماس، پیگیری سفارش، ورود پنل مدیریت) — یک جدولِ عمومی برای
+    //     همه‌ی این مسیرها، به‌جای یک جدولِ جداگانه برای هرکدام ───
+    `CREATE TABLE IF NOT EXISTS request_throttle (
+    id SERIAL PRIMARY KEY,
+    route VARCHAR(60) NOT NULL,
+    ip VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+    `CREATE INDEX IF NOT EXISTS idx_request_throttle_lookup ON request_throttle(route, ip, created_at)`
 ];
 }),
 "[project]/lib/db.ts [app-route] (ecmascript)", ((__turbopack_context__) => {

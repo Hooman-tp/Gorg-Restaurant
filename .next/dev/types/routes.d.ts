@@ -4,7 +4,7 @@
 type AppRoutes = "/" | "/about" | "/admin" | "/admin/cash" | "/admin/customers" | "/admin/gallery" | "/admin/inventory" | "/admin/menu" | "/admin/orders" | "/admin/pos" | "/admin/reports" | "/admin/reset-password" | "/admin/settings" | "/admin/tables" | "/checkout" | "/checkout/verify" | "/contact" | "/gallery" | "/menu" | "/track"
 type AppRouteHandlerRoutes = "/api/admin/account" | "/api/admin/cash" | "/api/admin/customers" | "/api/admin/dashboard" | "/api/admin/forgot-password" | "/api/admin/gallery" | "/api/admin/gallery/image" | "/api/admin/inventory" | "/api/admin/login" | "/api/admin/logout" | "/api/admin/me" | "/api/admin/menu" | "/api/admin/menu/image" | "/api/admin/orders" | "/api/admin/pos" | "/api/admin/reports" | "/api/admin/reset-password" | "/api/admin/settings" | "/api/admin/tables" | "/api/auth/logout" | "/api/auth/me" | "/api/auth/send-otp" | "/api/auth/verify-otp" | "/api/checkout/confirm" | "/api/checkout/start" | "/api/contact" | "/api/gallery-image/[id]" | "/api/menu-image/[id]" | "/api/profile" | "/api/settings/public" | "/api/track"
 type PageRoutes = never
-type LayoutRoutes = "/" | "/admin"
+type LayoutRoutes = "/" | "/admin" | "/checkout" | "/track"
 type RedirectRoutes = never
 type RewriteRoutes = never
 type Routes = AppRoutes | PageRoutes | LayoutRoutes | RedirectRoutes | RewriteRoutes | AppRouteHandlerRoutes
@@ -70,6 +70,8 @@ export type ParamsOf<Route extends Routes> = ParamMap[Route]
 interface LayoutSlotMap {
   "/": never
   "/admin": never
+  "/checkout": never
+  "/track": never
 }
 
 

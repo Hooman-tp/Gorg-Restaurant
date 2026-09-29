@@ -7,10 +7,16 @@ export interface AdminSession {
   username: string;
 }
 
-function getSecret() {
-  // اگر ADMIN_SESSION_SECRET تنظیم نشده باشد، از خودِ رمز ادمین به‌عنوان
-  // کلید امضا استفاده می‌شود (کافی است چون فقط برای همین سایت است)
-  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "gorg-fallback-secret";
+/**
+ * کلیدِ امضای نشست فقط از متغیرهای محیطی خوانده می‌شود؛ هیچ کلیدِ
+ * پیش‌فرضِ ثابتی در کد وجود ندارد (دقیقاً همان اصلی که lib/userAuth.ts
+ * برای امضای OTP رعایت می‌کند). اگر هیچ‌کدام تنظیم نشده باشد، به‌جای
+ * استفاده‌ی خاموش از یک رشته‌ی حدس‌زدنیِ عمومی — که هر کسی می‌تواند با آن
+ * برای هر نام‌کاربری‌ای یک کوکیِ ادمینِ جعلی بسازد — ورود کاملاً غیرفعال
+ * می‌شود.
+ */
+function getSecret(): string | null {
+  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || null;
 }
 
 /**
@@ -33,21 +39,25 @@ export function checkAdminPassword(password: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export function createAdminToken(username: string): string {
+export function createAdminToken(username: string): string | null {
+  const secret = getSecret();
+  if (!secret) return null;
   const ts = Date.now().toString();
   const u = Buffer.from(username, "utf8").toString("base64url");
-  const sig = createHmac("sha256", getSecret()).update(`${u}.${ts}`).digest("hex");
+  const sig = createHmac("sha256", secret).update(`${u}.${ts}`).digest("hex");
   return `${u}.${ts}.${sig}`;
 }
 
 export function verifyAdminToken(token: string | undefined | null): AdminSession | null {
   if (!token) return null;
+  const secret = getSecret();
+  if (!secret) return null;
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   const [u, ts, sig] = parts;
   if (!u || !ts || !sig) return null;
   if (!Number.isFinite(Number(ts)) || Date.now() - Number(ts) > MAX_AGE_MS) return null;
-  const expected = createHmac("sha256", getSecret()).update(`${u}.${ts}`).digest("hex");
+  const expected = createHmac("sha256", secret).update(`${u}.${ts}`).digest("hex");
   try {
     if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
   } catch {

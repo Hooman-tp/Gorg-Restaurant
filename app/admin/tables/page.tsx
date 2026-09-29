@@ -62,13 +62,21 @@ export default function TablesPage() {
     }
   }
 
+  // مقادیرِ متنی پیش از قرارگرفتن در HTMLِ صفحه‌ی چاپ escape می‌شوند
+  const esc = (v: unknown) =>
+    String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
   function printAll() {
     const w = window.open("", "_blank");
     if (!w) return toast("پنجره‌ی چاپ مسدود شد؛ اجازه‌ی پاپ‌آپ بدهید", "error");
     const cards = tables
       .filter((t) => t.active && qr[t.code])
       .map(
-        (t) => `<div class="c"><h2>${businessName}</h2><img src="${qr[t.code]}"><p class="n">میز ${t.code}</p><p>${t.title ? t.title + " — " : ""}برای دیدن منو و سفارش، اسکن کنید</p></div>`
+        (t) => `<div class="c"><h2>${esc(businessName)}</h2><img src="${qr[t.code]}"><p class="n">میز ${esc(t.code)}</p><p>${t.title ? esc(t.title) + " — " : ""}برای دیدن منو و سفارش، اسکن کنید</p></div>`
       )
       .join("");
     w.document.write(`<!doctype html><html dir="rtl" lang="fa"><head><meta charset="utf-8"><title>QR میزها</title><style>

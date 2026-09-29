@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/checkout", "/admin"],
+      disallow: ["/api/", "/checkout", "/admin", "/track"],
     },
     sitemap: "https://gorg-restaurant.ir/sitemap.xml",
   };

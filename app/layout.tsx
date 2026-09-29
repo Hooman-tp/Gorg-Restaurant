@@ -24,12 +24,30 @@ export const metadata: Metadata = {
   description:
     "رستوران گرگ: برگر، ساندویچ بریسکت، مرغ سوخاری نشویل، بال و سیب‌زمینی. سفارش آنلاین، رزرو و دلیوری در تهران.",
   keywords: ["رستوران گرگ", "گرگ رستوران", "GORG", "سفارش آنلاین غذا", "برگر تهران", "بریسکت", "نشویل"],
+  applicationName: "گرگ | GORG",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "گرگ | GORG",
     description: "به غریزه‌ات اعتماد کن. برگر، بریسکت، نشویل و بال زیر یک سقف.",
+    siteName: "گرگ | GORG",
     locale: "fa_IR",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "گرگ | GORG",
+    description: "به غریزه‌ات اعتماد کن. برگر، بریسکت، نشویل و بال زیر یک سقف.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  // کدِ تأییدِ مالکیت در Google Search Console (اختیاری): متغیر محیطی
+  // NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION را روی هاست تنظیم کنید
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

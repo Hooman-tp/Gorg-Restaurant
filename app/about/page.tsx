@@ -6,6 +6,7 @@ import { spaceImages } from "@/lib/images";
 export const metadata: Metadata = {
   title: "درباره گرگ",
   description: "داستان رستوران گرگ؛ از یک غریزه‌ی ساده تا آشپزخانه‌ای برای برگر، بریسکت و نشویل.",
+  alternates: { canonical: "/about" },
 };
 
 export default function AboutPage() {

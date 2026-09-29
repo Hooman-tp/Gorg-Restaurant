@@ -71,7 +71,7 @@ const __TURBOPACK__default__export__ = {
     "SCHEMA_VERSION",
     ()=>SCHEMA_VERSION
 ]);
-const SCHEMA_VERSION = "2026-09-panel-2";
+const SCHEMA_VERSION = "2026-09-panel-3-security";
 const DDL = [
     // ─── جدول‌های پایه (اگر قبلاً با schema.sql ساخته شده باشند، تغییری نمی‌کنند) ───
     `CREATE TABLE IF NOT EXISTS orders (
@@ -246,7 +246,36 @@ const DDL = [
     used BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
-    `CREATE INDEX IF NOT EXISTS idx_admin_resets_username ON admin_password_resets(username)`
+    `CREATE INDEX IF NOT EXISTS idx_admin_resets_username ON admin_password_resets(username)`,
+    // ─── ورود مشتری با کد پیامکی (OTP) — این دو جدول را کدِ app/api/auth/*
+    //     همیشه لازم داشته اما تا این نسخه هیچ‌جا ساخته نمی‌شدند؛ بدون این‌ها
+    //     ورود با موبایل (و در نتیجه کل فرایند سفارش/پرداخت) با خطای دیتابیس
+    //     شکست می‌خورد ───
+    `CREATE TABLE IF NOT EXISTS otp_codes (
+    phone VARCHAR(11) PRIMARY KEY,
+    code_hash VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    send_count INTEGER NOT NULL DEFAULT 1,
+    window_start TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+    `CREATE TABLE IF NOT EXISTS otp_requests (
+    id SERIAL PRIMARY KEY,
+    ip VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+    `CREATE INDEX IF NOT EXISTS idx_otp_requests_ip_time ON otp_requests(ip, created_at)`,
+    // ─── محدودکردن نرخِ درخواست برای مسیرهای عمومیِ در معرض سوءاستفاده
+    //     (فرم تماس، پیگیری سفارش، ورود پنل مدیریت) — یک جدولِ عمومی برای
+    //     همه‌ی این مسیرها، به‌جای یک جدولِ جداگانه برای هرکدام ───
+    `CREATE TABLE IF NOT EXISTS request_throttle (
+    id SERIAL PRIMARY KEY,
+    route VARCHAR(60) NOT NULL,
+    ip VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+    `CREATE INDEX IF NOT EXISTS idx_request_throttle_lookup ON request_throttle(route, ip, created_at)`
 ];
 }),
 "[project]/lib/db.ts [app-rsc] (ecmascript)", ((__turbopack_context__) => {

@@ -1,7 +1,6 @@
 {
   "app": {
     "[project]/app/admin/page": [],
-    "[project]/app/menu/page": [],
     "[project]/app/page": []
   },
   "appUsingSizeAdjust": false,

@@ -14,6 +14,7 @@ const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURICom
 export const metadata: Metadata = {
   title: "تماس با ما",
   description: "آدرس، تلفن، ساعات کاری و فرم تماس رستوران گرگ.",
+  alternates: { canonical: "/contact" },
 };
 
 export default function ContactPage() {

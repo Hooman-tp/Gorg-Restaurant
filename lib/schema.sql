@@ -159,3 +159,35 @@ CREATE TABLE IF NOT EXISTS dining_tables (
     title VARCHAR(80),
     active BOOLEAN NOT NULL DEFAULT true
   );
+
+-- ─── ورود مشتری با کد پیامکی (OTP) — قبلاً در این فایل نبودند؛
+--     بدون این دو جدول، ورود با موبایل و کل فرایند سفارش/پرداخت
+--     با خطای دیتابیس شکست می‌خورد ───
+CREATE TABLE IF NOT EXISTS otp_codes (
+    phone VARCHAR(11) PRIMARY KEY,
+    code_hash VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    send_count INTEGER NOT NULL DEFAULT 1,
+    window_start TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+
+CREATE TABLE IF NOT EXISTS otp_requests (
+    id SERIAL PRIMARY KEY,
+    ip VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+
+CREATE INDEX IF NOT EXISTS idx_otp_requests_ip_time ON otp_requests(ip, created_at);
+
+-- ─── محدودسازی نرخ درخواست برای مسیرهای عمومیِ در معرض سوءاستفاده
+--     (فرم تماس، پیگیری سفارش، ورود پنل مدیریت) ───
+CREATE TABLE IF NOT EXISTS request_throttle (
+    id SERIAL PRIMARY KEY,
+    route VARCHAR(60) NOT NULL,
+    ip VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+
+CREATE INDEX IF NOT EXISTS idx_request_throttle_lookup ON request_throttle(route, ip, created_at);

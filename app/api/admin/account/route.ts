@@ -63,13 +63,16 @@ export const POST = adminOnly(async (req: NextRequest, admin: AdminSession) => {
   });
 
   const finalUsername = newUsername || String(user.username);
+  const token = createAdminToken(finalUsername);
   const res = json({ ok: true, username: finalUsername });
-  res.cookies.set(COOKIE_NAME, createAdminToken(finalUsername), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-    path: "/",
-  });
+  if (token) {
+    res.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+  }
   return res;
 });

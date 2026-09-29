@@ -1,45 +1,7 @@
-{"timestamp":"00:00:35.424","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:01:09.915","source":"Server","level":"LOG","message":"○ Compiling / ..."}
-{"timestamp":"00:02:19.586","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:02:20.260","source":"Server","level":"LOG","message":"✓ Finished writing to filesystem cache in 28.0s"}
-{"timestamp":"00:02:20.303","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:02:23.614","source":"Server","level":"LOG","message":"○ Compiling /api/admin/me ..."}
-{"timestamp":"00:02:59.217","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:02:59.468","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:02:59.600","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:02:59.600","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:02:59.913","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:02:59.914","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:02:59.916","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:02:59.916","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:02:59.917","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:02:59.918","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:02:59.919","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:02:59.920","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:02:59.921","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:02:59.923","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:02:59.924","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:02:59.925","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:10:23.426","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:10:24.058","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:10:24.060","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:10:24.061","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:10:24.062","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:10:24.063","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:10:24.064","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:10:24.065","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:10:24.066","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:10:24.068","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:10:24.068","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:10:24.070","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mObjectMultiplex - orphaned data for stream \\\"metamask-multichain-provider\\\"\\u001b[39m\" \"\\u001b[2m(moz-extension://bbd39b07-842c-4638-aef1-b19df885254d/scripts/inpage.js;:1:28380)\\u001b[22m\""}
-{"timestamp":"00:10:24.070","source":"Browser","level":"WARN","message":"\u001b[33mObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\"\u001b[39m"}
-{"timestamp":"00:10:24.071","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:10:24.071","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:10:24.071","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:10:24.071","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:10:24.071","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:10:24.071","source":"Browser","level":"WARN","message":"ObjectMultiplex - orphaned data for stream \"metamask-multichain-provider\""}
-{"timestamp":"00:10:51.107","source":"Server","level":"LOG","message":"○ Compiling /menu ..."}
-{"timestamp":"00:11:38.405","source":"Server","level":"LOG","message":"✓ Finished writing to filesystem cache in 15.5s"}
-{"timestamp":"00:11:51.390","source":"Server","level":"LOG","message":"✓ Finished filesystem cache database compaction in 13.5s"}
-{"timestamp":"00:15:53.933","source":"Server","level":"LOG","message":"✓ Compiled in 14.3s"}
+{"timestamp":"00:00:33.476","source":"Server","level":"WARN","message":"⚠ Slow filesystem detected. The benchmark took 402ms. If D:\\Narm Afzar\\Tarahi Sait\\Gorg-Restaurant\\Gorg-Restaurant\\.next/dev is a network drive, consider moving it to a local folder.\nSee more: https://nextjs.org/docs/app/guides/local-development"}
+{"timestamp":"00:00:44.282","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:23:34.776","source":"Server","level":"LOG","message":"○ Compiling /admin ..."}
+{"timestamp":"00:24:52.575","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:24:52.677","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:24:53.271","source":"Server","level":"LOG","message":"✓ Finished writing to filesystem cache in 15.7s"}
+{"timestamp":"00:24:56.415","source":"Server","level":"LOG","message":"○ Compiling /api/admin/me ..."}
